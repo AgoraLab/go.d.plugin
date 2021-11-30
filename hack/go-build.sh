@@ -37,7 +37,7 @@ GOLDFLAGS="$GOLDFLAGS -w -s -X main.version=$VERSION"
 
 build() {
   echo "Building ${GOOS}/${GOARCH}"
-  CGO_ENABLED=0 GOOS="$1" GOARCH="$2" go build -ldflags "${GOLDFLAGS}" -o "$3" "github.com/netdata/go.d.plugin/cmd/godplugin"
+  CGO_ENABLED=1 GOOS="$1" GOARCH="$2" go build -ldflags "${GOLDFLAGS}" -o "$3" "github.com/netdata/go.d.plugin/cmd/godplugin"
 }
 
 build_all_platforms() {
