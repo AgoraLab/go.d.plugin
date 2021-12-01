@@ -24,7 +24,7 @@ check: fmt vet lint ## Run static code analysis
 
 .PHONY: test
 test: ## Run tests
-	CGO_ENABLE=1 go test ./... -race -cover -covermode=atomic
+	go test ./... -race -cover -covermode=atomic
 
 .PHONY: fmt
 fmt:
