@@ -43,7 +43,7 @@ func TestBind_Check(t *testing.T) {
 	ts := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
-				if r.URL.Path == "/json/v1/server" {
+				if r.URL.Path == "/json/v1" {
 					_, _ = w.Write(jsonServerData)
 				}
 			}))
@@ -247,7 +247,7 @@ func TestBind_CollectXML3(t *testing.T) {
 	ts := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
-				if r.URL.Path == "/xml/v3/server" {
+				if r.URL.Path == "/xml/v3" {
 					_, _ = w.Write(xmlServerData)
 				}
 			}))

@@ -19,6 +19,9 @@ const (
 	// TODO: add to orchestrator module
 	basePriority = 70000
 
+	keyUptime          = "uptime"
+	keyReconfigureTime = "reconfigure_time"
+
 	keyReceivedRequests    = "received_requests"
 	keyQueriesSuccess      = "queries_success"
 	keyRecursiveClients    = "recursive_clients"
@@ -40,6 +43,24 @@ const (
 )
 
 var charts = map[string]Chart{
+
+	keyUptime: {
+		ID:       keyUptime,
+		Title:    "server start up timestamp",
+		Units:    "timestamp",
+		Fam:      "status",
+		Ctx:      "bind.uptime",
+		Priority: basePriority,
+	},
+	keyReconfigureTime: {
+		ID:       keyReconfigureTime,
+		Title:    "server reconfigure timestamp",
+		Units:    "timestamp",
+		Fam:      "status",
+		Ctx:      "bind.reconfigure_time",
+		Priority: basePriority,
+	},
+
 	keyRecursiveClients: {
 		ID:       keyRecursiveClients,
 		Title:    "Global Recursive Clients",

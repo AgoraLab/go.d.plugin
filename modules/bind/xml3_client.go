@@ -3,11 +3,10 @@ package bind
 import (
 	"encoding/xml"
 	"fmt"
+	"github.com/netdata/go.d.plugin/pkg/web"
 	"net/http"
 	"net/url"
-	"path"
-
-	"github.com/netdata/go.d.plugin/pkg/web"
+	"time"
 )
 
 type xml3Stats struct {
@@ -16,7 +15,9 @@ type xml3Stats struct {
 }
 
 type xml3Server struct {
-	CounterGroups []xml3CounterGroup `xml:"counters"`
+	BootTime        time.Time          `xml:"boot-time"`
+	ReconfigureTime time.Time          `xml:"config-time"`
+	CounterGroups   []xml3CounterGroup `xml:"counters"`
 }
 
 type xml3CounterGroup struct {
@@ -48,7 +49,6 @@ func (c xml3Client) serverStats() (*serverStats, error) {
 		return nil, fmt.Errorf("error on parsing URL: %v", err)
 	}
 
-	u.Path = path.Join(u.Path, "/server")
 	req.URL = u.String()
 
 	httpReq, err := web.NewHTTPRequest(req)
@@ -75,11 +75,13 @@ func (c xml3Client) serverStats() (*serverStats, error) {
 
 func convertXML(xmlStats xml3Stats) *serverStats {
 	stats := serverStats{
-		OpCodes:   make(map[string]int64),
-		NSStats:   make(map[string]int64),
-		QTypes:    make(map[string]int64),
-		SockStats: make(map[string]int64),
-		Views:     make(map[string]jsonView),
+		OpCodes:         make(map[string]int64),
+		NSStats:         make(map[string]int64),
+		QTypes:          make(map[string]int64),
+		SockStats:       make(map[string]int64),
+		Views:           make(map[string]jsonView),
+		BootTime:        xmlStats.Server.BootTime,
+		ReconfigureTime: xmlStats.Server.ReconfigureTime,
 	}
 
 	var m map[string]int64

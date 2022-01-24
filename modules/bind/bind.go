@@ -20,7 +20,7 @@ func init() {
 }
 
 const (
-	defaultURL         = "http://127.0.0.1:8653/json/v1"
+	defaultURL         = "http://127.0.0.1:8053/json/v1"
 	defaultHTTPTimeout = time.Second * 2
 )
 
@@ -127,6 +127,19 @@ func (b *Bind) Collect() map[string]int64 {
 
 func (b *Bind) collectServerStats(metrics map[string]int64, stats *serverStats) {
 	var chart *Chart
+
+	// server time
+	if !b.charts.Has(keyUptime) {
+		_ = b.charts.Add(charts[keyUptime].Copy())
+		_ = b.charts.Get(keyUptime).AddDim(&Dim{ID: keyUptime, Algo: module.Absolute})
+	}
+	metrics[keyUptime] = stats.BootTime.Unix()
+
+	if !b.charts.Has(keyReconfigureTime) {
+		_ = b.charts.Add(charts[keyReconfigureTime].Copy())
+		_ = b.charts.Get(keyReconfigureTime).AddDim(&Dim{ID: keyReconfigureTime, Algo: module.Absolute})
+	}
+	metrics[keyReconfigureTime] = stats.ReconfigureTime.Unix()
 
 	for k, v := range stats.NSStats {
 		var (
