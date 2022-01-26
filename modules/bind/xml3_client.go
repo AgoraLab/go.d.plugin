@@ -30,7 +30,20 @@ type xml3CounterGroup struct {
 
 type xml3View struct {
 	Name          string             `xml:"name,attr"`
+	Zones         []xml3ZoneCounter  `xml:"zones>zone"`
 	CounterGroups []xml3CounterGroup `xml:"counters"`
+}
+
+//type xml3Zone struct {
+//	Name  string            `xml:"name,attr"`
+//	Zones []xml3ZoneCounter `xml:"zones>zone"`
+//}
+
+type xml3ZoneCounter struct {
+	Name       string `xml:"name,attr"`
+	Rdataclass string `xml:"rdataclass,attr"`
+	Type       string `xml:"type"`
+	Serial     int64  `xml:"serial"`
 }
 
 func newXML3Client(client *http.Client, request web.Request) *xml3Client {
@@ -112,7 +125,17 @@ func convertXML(xmlStats xml3Stats) *serverStats {
 				QTypes:     make(map[string]int64),
 				CacheStats: make(map[string]int64),
 			},
+			Zones: make([]jsonViewZone, len(view.Zones)),
 		}
+		for i, z := range view.Zones {
+			stats.Views[view.Name].Zones[i] = jsonViewZone{
+				Name:   z.Name,
+				Class:  z.Rdataclass,
+				Serial: z.Serial,
+				Type:   z.Type,
+			}
+		}
+
 		for _, viewGroup := range view.CounterGroups {
 			switch viewGroup.Type {
 			default:

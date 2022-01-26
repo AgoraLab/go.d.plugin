@@ -70,7 +70,7 @@ func TestBind_CollectJSON(t *testing.T) {
 	ts := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
-				if r.URL.Path == "/json/v1/server" {
+				if r.URL.Path == "/json/v1" {
 					_, _ = w.Write(jsonServerData)
 				}
 			}))
@@ -237,10 +237,33 @@ func TestBind_CollectJSON(t *testing.T) {
 		"_default_AFSDB":           5,
 		"NOTIFY":                   390443,
 		"Others":                   74006,
+		"RawActive":                1,
+		"RawOpen":                  1,
+		"TCP4Accept":               9,
+		"TCP4Active":               6,
+		"TCP4Close":                6325,
+		"TCP4Conn":                 5901,
+		"TCP4Open":                 6322,
+		"TCP6Active":               2,
+		"TCP6Open":                 2,
+		"UDP4Active":               78,
+		"UDP4BindFail":             1562,
+		"UDP4Close":                4770519,
+		"UDP4Conn":                 4768629,
+		"UDP4Open":                 4770597,
+		"UDP4RecvErr":              893,
+		"UDP6Active":               39,
+		"UDP6BindFail":             9,
+		"UDP6Close":                155638,
+		"UDP6ConnFail":             155629,
+		"UDP6Open":                 155677,
+		"UDP6SendErr":              155629,
+		"reconfigure_time":         1634809475,
+		"uptime":                   1632476636,
 	}
 
 	assert.Equal(t, expected, job.Collect())
-	assert.Len(t, *job.charts, 17)
+	assert.Len(t, *job.charts, 20)
 }
 
 func TestBind_CollectXML3(t *testing.T) {
@@ -369,6 +392,12 @@ func TestBind_CollectXML3(t *testing.T) {
 		"_bind_Queryv4":            0,
 		"_bind_CacheMisses":        509,
 		"ExpireOpt":                195,
+		"FDWatchClose":             0,
+		"FDwatchConn":              0,
+		"FDwatchConnFail":          0,
+		"FDwatchRecvErr":           0,
+		"FDwatchSendErr":           0,
+		"FdwatchBindFail":          0,
 		"XfrRej":                   97,
 		"_default_DNSKEY":          182399,
 		"RecQryRej":                225832466,
@@ -490,10 +519,68 @@ func TestBind_CollectXML3(t *testing.T) {
 		"QryTCP":                   4233061,
 		"UpdateDone":               0,
 		"IQUERY":                   199,
+		"RawActive":                1,
+		"RawClose":                 0,
+		"RawOpen":                  1,
+		"RawOpenFail":              0,
+		"RawRecvErr":               0,
+		"TCP4Accept":               8,
+		"TCP4AcceptFail":           0,
+		"TCP4Active":               6,
+		"TCP4BindFail":             0,
+		"TCP4Close":                6324,
+		"TCP4Conn":                 5901,
+		"TCP4ConnFail":             0,
+		"TCP4Open":                 6322,
+		"TCP4OpenFail":             0,
+		"TCP4RecvErr":              0,
+		"TCP4SendErr":              0,
+		"TCP6Accept":               0,
+		"TCP6AcceptFail":           0,
+		"TCP6Active":               2,
+		"TCP6BindFail":             0,
+		"TCP6Close":                0,
+		"TCP6Conn":                 0,
+		"TCP6ConnFail":             0,
+		"TCP6Open":                 2,
+		"TCP6OpenFail":             0,
+		"TCP6RecvErr":              0,
+		"TCP6SendErr":              0,
+		"UDP4Active":               78,
+		"UDP4BindFail":             1562,
+		"UDP4Close":                4770381,
+		"UDP4Conn":                 4768491,
+		"UDP4ConnFail":             0,
+		"UDP4Open":                 4770459,
+		"UDP4OpenFail":             0,
+		"UDP4RecvErr":              893,
+		"UDP4SendErr":              0,
+		"UDP6Active":               39,
+		"UDP6BindFail":             9,
+		"UDP6Close":                155638,
+		"UDP6Conn":                 0,
+		"UDP6ConnFail":             155629,
+		"UDP6Open":                 155677,
+		"UDP6OpenFail":             0,
+		"UDP6RecvErr":              0,
+		"UDP6SendErr":              155629,
+		"UnixAccept":               0,
+		"UnixAcceptFail":           0,
+		"UnixActive":               0,
+		"UnixBindFail":             0,
+		"UnixClose":                0,
+		"UnixConn":                 0,
+		"UnixConnFail":             0,
+		"UnixOpen":                 0,
+		"UnixOpenFail":             0,
+		"UnixRecvErr":              0,
+		"UnixSendErr":              0,
+		"reconfigure_time":         1634809475,
+		"uptime":                   1632476636,
 	}
 
 	assert.Equal(t, expected, job.Collect())
-	assert.Len(t, *job.charts, 20)
+	assert.Len(t, *job.charts, 23)
 }
 
 func TestBind_InvalidData(t *testing.T) {

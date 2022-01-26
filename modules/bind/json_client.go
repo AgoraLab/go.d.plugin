@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"path"
+	"time"
 
 	"github.com/netdata/go.d.plugin/pkg/web"
 )
@@ -15,15 +15,25 @@ import (
 type serverStats = jsonServerStats
 
 type jsonServerStats struct {
-	OpCodes   map[string]int64
-	QTypes    map[string]int64
-	NSStats   map[string]int64
-	SockStats map[string]int64
-	Views     map[string]jsonView
+	OpCodes         map[string]int64
+	QTypes          map[string]int64
+	NSStats         map[string]int64
+	SockStats       map[string]int64
+	Views           map[string]jsonView
+	BootTime        time.Time `json:"boot-time"`
+	ReconfigureTime time.Time `json:"config-time"`
 }
 
 type jsonView struct {
+	Zones    []jsonViewZone `json:"zones"`
 	Resolver jsonViewResolver
+}
+
+type jsonViewZone struct {
+	Name   string `json:"name"`
+	Class  string `json:"class"`
+	Serial int64  `json:"serial"`
+	Type   string `json:"type"`
 }
 
 type jsonViewResolver struct {
@@ -48,7 +58,6 @@ func (c jsonClient) serverStats() (*serverStats, error) {
 		return nil, fmt.Errorf("error on parsing URL: %v", err)
 	}
 
-	u.Path = path.Join(u.Path, "/server")
 	req.URL = u.String()
 
 	httpReq, err := web.NewHTTPRequest(req)
