@@ -1,6 +1,9 @@
 package chrony
 
-import "github.com/netdata/go.d.plugin/agent/module"
+import (
+	"github.com/netdata/go.d.plugin/agent/module"
+	"net"
+)
 
 type (
 	// Charts is an alias for module.Charts
@@ -37,7 +40,7 @@ var charts = Charts{
 		//  LEAP_DeleteSecond = 2,
 		//  LEAP_Unsynchronised = 3
 		Title: "Leap status can be Normal, Insert second, Delete second or Not synchronised.",
-		Units: "htop",
+		Units: "hop",
 		Ctx:   "chrony.leap_status",
 		Dims: Dims{
 			{ID: "leap_status", Name: "leap_status", Algo: module.Absolute, Div: 1, Mul: 1},
@@ -136,6 +139,16 @@ var charts = Charts{
 			{ID: "burst_online_sources", Name: "burst_online_sources", Algo: module.Absolute, Div: 1, Mul: 1},
 			{ID: "burst_offline_sources", Name: "burst_offline_sources", Algo: module.Absolute, Div: 1, Mul: 1},
 			{ID: "unresolved_sources", Name: "unresolved_sources", Algo: module.Absolute, Div: 1, Mul: 1},
+		},
+	},
+	{
+		ID:    "source",
+		Title: "Activity Source Server",
+		Units: "hop",
+		Ctx:   "chrony.source",
+		Type:  module.Area,
+		Dims: Dims{
+			{ID: net.IPv4zero.String(), Name: net.IPv4zero.String(), Algo: module.Absolute, Div: 1, Mul: 1},
 		},
 	},
 }
