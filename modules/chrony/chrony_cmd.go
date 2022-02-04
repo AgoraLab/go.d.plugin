@@ -75,7 +75,6 @@ func (c *Chrony) SubmitRequest(req *RequestPacket) (*ReplyPacket, interface{}, e
 }
 
 func (c *Chrony) FetchTracking() (*TrackingPayload, error) {
-
 	req := c.EmptyRequest()
 	req.Command = reqTracking
 
@@ -88,16 +87,10 @@ func (c *Chrony) FetchTracking() (*TrackingPayload, error) {
 }
 
 func (c *Chrony) FetchActivity() (*ActivityPayload, error) {
-	var attempt uint16
+	req := c.EmptyRequest()
+	req.Command = reqActivity
 
-	req := RequestPacket{
-		Version: protoVersionNumber,
-		PktType: pktTypeCMDRequest,
-		Command: reqActivity,
-		Attempt: attempt,
-	}
-
-	_, activityPtr, err := c.SubmitRequest(&req)
+	_, activityPtr, err := c.SubmitRequest(req)
 	if err != nil {
 		return nil, err
 	}
