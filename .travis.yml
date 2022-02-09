@@ -1,23 +1,16 @@
 ---
 language: go
 go:
-  - '1.16'
+  - '1.17'
 
 env:
   - GO111MODULE=on
 
 stages:
 - build
-- name: release
-  if: tag =~ ^v
 
 jobs:
   include:
   - stage: build
     name: lint & test & build
     script: make all
-  - stage: release
-    name: publish release artifacts
-    script:
-      - make release
-      - .travis/publisher.sh
