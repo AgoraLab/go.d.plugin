@@ -2,12 +2,12 @@ package chrony
 
 import (
 	"fmt"
+	"github.com/getsentry/sentry-go"
 	"net"
 	"time"
 
 	// "github.com/getsentry/raven-go"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/netdata/go.d.plugin/agent/module"
 )
 
@@ -15,6 +15,7 @@ type (
 	Config struct {
 		Protocol     string               `yaml:"protocol"`
 		Address      string               `yaml:"address"`
+		Timeout      int                  `yaml:"timeout"` // Millisecond
 		SentryConfig sentry.ClientOptions `yaml:",inline"`
 	}
 
@@ -50,6 +51,7 @@ func New() *Chrony {
 			Protocol:     chronyDefaultProtocol,
 			Address:      chronyDefaultCmdAddr,
 			SentryConfig: sentry.ClientOptions{},
+			Timeout:      1000,
 		},
 		charts:       &charts,
 		latestSource: net.IPv4zero,
@@ -66,8 +68,11 @@ func (c *Chrony) Init() bool {
 	if err != nil {
 		c.Warningf("Sentry initialization failed: %v", err)
 	}
+	if c.Timeout <= 0 {
+		c.Timeout = 1000
+	}
 
-	conn, err := net.Dial(c.Protocol, c.Address)
+	conn, err := net.DialTimeout(c.Protocol, c.Address, time.Duration(c.Timeout)*time.Millisecond)
 	if err != nil {
 		c.Errorf(
 			"unable connect to chrony addr %s:%s err: %s, is chrony up and running?",
