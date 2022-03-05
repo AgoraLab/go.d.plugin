@@ -68,6 +68,9 @@ func (c *Chrony) Init() bool {
 	if err != nil {
 		c.Warningf("Sentry initialization failed: %v", err)
 	}
+	if c.Timeout <= 0 {
+		c.Timeout = 1000
+	}
 
 	conn, err := net.DialTimeout(c.Protocol, c.Address, time.Duration(c.Timeout)*time.Millisecond)
 	if err != nil {
