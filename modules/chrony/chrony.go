@@ -142,10 +142,15 @@ func (c *Chrony) collectTracking() (res map[string]int64) {
 	sourceIp := tracking.Ip.Ip()
 
 	if !sourceIp.Equal(c.latestSource) {
-		c.charts.Get("source").AddDim(&module.Dim{
+		chart := c.charts.Get("source")
+		_ = chart.AddDim(&module.Dim{
 			ID: sourceIp.String(), Name: sourceIp.String(), Algo: module.Absolute, Div: 1, Mul: 1,
 		})
-		c.charts.Get("source").RemoveDim(c.latestSource.String())
+		_ = chart.RemoveDim(c.latestSource.String())
+
+		// you should let go.d.plugin know that something has been changed, and print dimension again.
+		chart.MarkNotCreated()
+
 		c.Debugf("source change from %s to %s")
 		sentry.CaptureException(
 			fmt.Errorf("source changed! {%s} -> {%s}", c.latestSource, sourceIp))
