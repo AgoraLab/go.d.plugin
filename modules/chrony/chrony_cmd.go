@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func (c *Chrony) SubmitRequest(req *RequestPacket) (*ReplyPacket, interface{}, error) {
+func (c *Chrony) SubmitRequest(req *RequestPacket) (*ReplyPacket, *bytes.Reader, error) {
 	conn := c.conn
 	var err error
 
@@ -31,6 +31,7 @@ func (c *Chrony) SubmitRequest(req *RequestPacket) (*ReplyPacket, interface{}, e
 	if err != nil {
 		return nil, nil, err
 	}
+	c.Debugf("read %d byte from response", rspLen)
 
 	rd := bytes.NewReader(dgram)
 	var reply ReplyPacket
@@ -41,17 +42,21 @@ func (c *Chrony) SubmitRequest(req *RequestPacket) (*ReplyPacket, interface{}, e
 
 	// check every fields
 	if reply.SeqNum != seqNumber {
-		return &reply, nil, fmt.Errorf("unexpected tracking packet seqNumber: %d", reply.SeqNum)
+		return &reply, rd, fmt.Errorf("unexpected tracking packet seqNumber: %d", reply.SeqNum)
 	}
 
 	if reply.Version != req.Version {
-		return &reply, nil, fmt.Errorf("unexpected chrony protocol version: %d", reply.Version)
+		return &reply, rd, fmt.Errorf("unexpected chrony protocol version: %d", reply.Version)
 	}
 
+	return &reply, rd, nil
+}
+
+func (c *Chrony) ParseChronyReply(reply *ReplyPacket, rd *bytes.Reader, err error) (*ReplyPacket, interface{}, error) {
 	switch reply.PktType {
 	case pktTypeCMDReply:
 	default:
-		return &reply, nil, fmt.Errorf("unexpected chrony reply type: %d", reply.PktType)
+		return reply, nil, fmt.Errorf("unexpected chrony reply type: %d", reply.PktType)
 	}
 
 	// get command from relay then apply
@@ -62,23 +67,23 @@ func (c *Chrony) SubmitRequest(req *RequestPacket) (*ReplyPacket, interface{}, e
 	case reqTracking:
 		payload = &TrackingPayload{}
 	default:
-		payload = make([]byte, rspLen-(int(rd.Size())-rd.Len()))
+		payload = make([]byte, rd.Len())
 		err = fmt.Errorf("unexpected reply command: %d", reply.Command)
 	}
 
 	// get rsp body
 	if err := binary.Read(rd, binary.BigEndian, payload); err != nil {
-		return &reply, nil, fmt.Errorf("failed reading payload: %s", err)
+		return reply, nil, fmt.Errorf("failed reading payload: %s", err)
 	}
 
-	return &reply, payload, err
+	return reply, payload, err
 }
 
 func (c *Chrony) FetchTracking() (*TrackingPayload, error) {
 	req := c.EmptyRequest()
 	req.Command = reqTracking
 
-	_, trackingPtr, err := c.SubmitRequest(req)
+	_, trackingPtr, err := c.ParseChronyReply(c.SubmitRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +95,7 @@ func (c *Chrony) FetchActivity() (*ActivityPayload, error) {
 	req := c.EmptyRequest()
 	req.Command = reqActivity
 
-	_, activityPtr, err := c.SubmitRequest(req)
+	_, activityPtr, err := c.ParseChronyReply(c.SubmitRequest(req))
 	if err != nil {
 		return nil, err
 	}
