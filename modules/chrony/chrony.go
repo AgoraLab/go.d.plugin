@@ -107,12 +107,33 @@ func (c *Chrony) Charts() *Charts {
 // Collect collects metrics
 func (c *Chrony) Collect() map[string]int64 {
 	// collect all we need and sent Exception to sentry
+	res := map[string]int64{"running": 0}
+
+	if !c.Running() {
+		return res
+	}
+	res["running"] = 1
+
 	tra := c.collectTracking()
+	for k, v := range tra {
+		res[k] = v
+	}
+
 	act := c.collectActivity()
 	for k, v := range act {
-		tra[k] = v
+		res[k] = v
 	}
-	return tra
+
+	return res
+}
+
+func (c *Chrony) Running() bool {
+	err := c.SubmitEmptyRequest()
+	if err != nil {
+		c.Errorf("contract chrony failed with err: %s", err)
+		return false
+	}
+	return true
 }
 
 func (c *Chrony) collectTracking() (res map[string]int64) {

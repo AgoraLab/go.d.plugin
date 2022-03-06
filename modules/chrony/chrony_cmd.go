@@ -103,13 +103,18 @@ func (c *Chrony) EmptyRequest() *RequestPacket {
 	if c.chronyVersion == 0 {
 		err := c.ApplyChronyVersion()
 		if err != nil {
-			panic(err) // should
+			panic(err) // unexpected chrony protocol version, we can't collect data correct.
 		}
 	}
 	return &RequestPacket{
 		Version: c.chronyVersion,
 		PktType: pktTypeCMDRequest,
 	}
+}
+
+func (c *Chrony) SubmitEmptyRequest() error {
+	_, _, err := c.SubmitRequest(c.EmptyRequest())
+	return err
 }
 
 func (c *Chrony) ApplyChronyVersion() error {
@@ -125,15 +130,19 @@ func (c *Chrony) ApplyChronyVersion() error {
 			Command: 0,
 		})
 		if err != nil {
-			c.Debugf("%+v", err)
+			c.Debugf("contact chrony failed with err: %+v", err)
+			continue
 		}
 
+		c.Debugf("chrony reply protocol version: %d", rpy.Version)
 		if version == rpy.Version {
 			c.chronyVersion = version
 			return nil
 		}
-		c.Debugf("Chrony reply version: %d", rpy.Version)
 	}
 
-	return fmt.Errorf("unexpected chrony protocol version")
+	c.Warningf("will use default chrony protocol version")
+	c.chronyVersion = protoVersionNumber
+	return nil
+	//return fmt.Errorf("unexpected chrony protocol version")
 }
