@@ -25,10 +25,17 @@ It collects information and statistics about the server executing the following 
 - Accepted and rejected (maxclients limit) connections in `connections/s`
 - Clients in `clients`
 
+### Performance
+
+- Ping latency in `seconds`
+- Processed commands in `commands/s`
+- Keys lookup hit rate in `percentage`
+
 ### Memory
 
 - Memory usage in `bytes`
 - Ratio between used_memory_rss and used_memory in `ratio`
+- Evicted keys due to maxmemory limit in `keys/s`
 
 ### Network bandwidth
 
@@ -37,28 +44,25 @@ It collects information and statistics about the server executing the following 
 ### Replication
 
 - Connected replicas in `replicas`
+- Time elapsed since the last interaction with master in `seconds`
+- Time elapsed since the link between master and slave is down in `seconds`
 
-### Persistence RDB
+### Persistence
 
 - Operations that produced changes since the last SAVE or BGSAVE in `operations`
-- Duration of the on-going RDB save operation if any in `seconds`
+- Duration of the ongoing RDB save operation if any in `seconds`
 - Status of the last RDB save operation in `status`
-
-### Persistence AOF
-
+- Time elapsed since the last successful RDB save in `seconds`
 - AOF file size in `bytes`
 
 ### Commands
 
-- Processed commands in `queries/s`
 - Calls per command in `calls/s`
 - Total CPU time consumed by the commands in `usec`
 - Average CPU consumed per command execution in `usec/s`
 
 ### Keyspace
 
-- Keys lookup hit rate in `percentage`
-- Evicted keys due to maxmemory limit in `keys/s`
 - Expired keys in `keys/s`
 - Keys per database in `keys`
 - Keys with an expiration per database in `keys`
@@ -79,6 +83,9 @@ sudo ./edit-config go.d/redis.conf
 
 There are two connection types: by tcp socket and by unix socket.
 
+> **Note**: If the Redis server is password protected via the `requirepass` option, make sure you have a colon before
+> the password.
+
 ```cmd
 # by tcp socket
 redis://<user>:<password>@<host>:<port>
@@ -94,6 +101,9 @@ jobs:
   - name: local
     address: 'redis://@127.0.0.1:6379'
 
+  - name: local
+    address: 'redis://:password@127.0.0.1:6379'
+
   - name: remote
     address: 'redis://user:password@203.0.113.0:6379'
 ```
@@ -106,17 +116,21 @@ collector's [configuration file](https://github.com/netdata/go.d.plugin/blob/mas
 To troubleshoot issues with the `redis` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m redis
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m redis
+  ```

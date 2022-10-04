@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package example
 
 import (
@@ -42,9 +44,11 @@ type (
 		HiddenCharts ConfigCharts `yaml:"hidden_charts"`
 	}
 	ConfigCharts struct {
-		Type string `yaml:"type"`
-		Num  int    `yaml:"num"`
-		Dims int    `yaml:"dimensions"`
+		Type     string `yaml:"type"`
+		Num      int    `yaml:"num"`
+		Contexts int    `yaml:"contexts"`
+		Dims     int    `yaml:"dimensions"`
+		Labels   int    `yaml:"labels"`
 	}
 )
 
@@ -93,4 +97,4 @@ func (e *Example) Collect() map[string]int64 {
 	return mx
 }
 
-func (Example) Cleanup() {}
+func (e *Example) Cleanup() {}

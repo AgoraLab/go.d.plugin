@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package redis
 
 import (
@@ -5,10 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/blang/semver/v4"
 	"regexp"
 	"strings"
-
-	"github.com/blang/semver/v4"
 )
 
 const precision = 1000 // float values multiplier and dimensions divisor
@@ -32,10 +33,11 @@ func (r *Redis) collect() (map[string]int64, error) {
 		return nil, fmt.Errorf("unsupported server app, want=redis, got=%s", r.server)
 	}
 
-	ms := make(map[string]int64)
-	r.collectInfo(ms, info)
+	mx := make(map[string]int64)
+	r.collectInfo(mx, info)
+	r.collectPingLatency(mx)
 
-	return ms, nil
+	return mx, nil
 }
 
 // redis_version:6.0.9

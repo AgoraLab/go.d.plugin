@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package prometheus
 
 import (
@@ -6,14 +8,14 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/netdata/go.d.plugin/pkg/prometheus/selector"
 	"github.com/netdata/go.d.plugin/pkg/web"
 
-	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/pkg/textparse"
+	"github.com/prometheus/prometheus/model/labels"
+	"github.com/prometheus/prometheus/model/textparse"
 )
 
 type (
@@ -54,7 +56,7 @@ func New(client *http.Client, request web.Request) Prometheus {
 	}
 }
 
-// New creates a Prometheus instance with the selector.
+// NewWithSelector creates a Prometheus instance with the selector.
 func NewWithSelector(client *http.Client, request web.Request, sr selector.Selector) Prometheus {
 	return &prometheus{
 		client:   client,
@@ -96,6 +98,9 @@ func (p *prometheus) parse(prometheusText []byte, metrics *Metrics, meta Metadat
 			if err == io.EOF {
 				break
 			}
+			if entry == textparse.EntryInvalid && strings.HasPrefix(err.Error(), "invalid metric type") {
+				continue
+			}
 			return err
 		}
 
@@ -132,7 +137,7 @@ func (p *prometheus) fetch(w io.Writer) error {
 	}
 
 	defer func() {
-		_, _ = io.Copy(ioutil.Discard, resp.Body)
+		_, _ = io.Copy(io.Discard, resp.Body)
 		_ = resp.Body.Close()
 	}()
 

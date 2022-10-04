@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package redis
 
 import (
@@ -6,6 +8,7 @@ import (
 	"time"
 
 	"github.com/netdata/go.d.plugin/agent/module"
+	"github.com/netdata/go.d.plugin/pkg/metrics"
 	"github.com/netdata/go.d.plugin/pkg/tlscfg"
 	"github.com/netdata/go.d.plugin/pkg/web"
 
@@ -22,19 +25,23 @@ func init() {
 func New() *Redis {
 	return &Redis{
 		Config: Config{
-			Address: "redis://@localhost:6379",
-			Timeout: web.Duration{Duration: time.Second},
+			Address:     "redis://@localhost:6379",
+			Timeout:     web.Duration{Duration: time.Second},
+			PingSamples: 5,
 		},
 
-		addAOFChartsOnce:  &sync.Once{},
-		collectedCommands: make(map[string]bool),
-		collectedDbs:      make(map[string]bool),
+		addAOFChartsOnce:       &sync.Once{},
+		addReplSlaveChartsOnce: &sync.Once{},
+		pingSummary:            metrics.NewSummary(),
+		collectedCommands:      make(map[string]bool),
+		collectedDbs:           make(map[string]bool),
 	}
 }
 
 type Config struct {
 	Address          string       `yaml:"address"`
 	Timeout          web.Duration `yaml:"timeout"`
+	PingSamples      int          `yaml:"ping_samples"`
 	tlscfg.TLSConfig `yaml:",inline"`
 }
 
@@ -43,20 +50,24 @@ type (
 		module.Base
 		Config `yaml:",inline"`
 
+		charts *module.Charts
+
 		rdb redisClient
 
 		server  string
 		version *semver.Version
 
+		addAOFChartsOnce       *sync.Once
+		addReplSlaveChartsOnce *sync.Once
+
+		pingSummary metrics.Summary
+
 		collectedCommands map[string]bool
 		collectedDbs      map[string]bool
-
-		addAOFChartsOnce *sync.Once
-
-		charts *module.Charts
 	}
 	redisClient interface {
 		Info(ctx context.Context, section ...string) *redis.StringCmd
+		Ping(context.Context) *redis.StatusCmd
 		Close() error
 	}
 )

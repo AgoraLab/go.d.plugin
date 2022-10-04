@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package prometheus
 
 import (
@@ -32,16 +34,19 @@ func New() *Prometheus {
 		MaxTSPerMetric: 200,
 	}
 	return &Prometheus{
-		Config:      config,
-		cache:       make(collectCache),
-		skipMetrics: make(map[string]bool),
-		charts:      statsCharts.Copy(),
+		Config:       config,
+		cache:        make(collectCache),
+		skipMetrics:  make(map[string]bool),
+		charts:       statsCharts.Copy(),
+		firstCollect: true,
 	}
 }
 
 type (
 	Config struct {
 		web.HTTP               `yaml:",inline"`
+		Name                   string        `yaml:"name"`
+		Application            string        `yaml:"app"`
 		BearerTokenFile        string        `yaml:"bearer_token_file"` // TODO: part of web.Request?
 		MaxTS                  int           `yaml:"max_time_series"`
 		MaxTSPerMetric         int           `yaml:"max_time_series_per_metric"`
@@ -62,6 +67,7 @@ type (
 		prom   prometheus.Prometheus
 		charts *module.Charts
 
+		firstCollect           bool
 		forceAbsoluteAlgorithm matcher.Matcher
 		optGroupings           []optionalGrouping
 		cache                  collectCache

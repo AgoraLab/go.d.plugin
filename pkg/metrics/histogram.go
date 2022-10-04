@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package metrics
 
 import (
@@ -24,10 +26,11 @@ type (
 	}
 
 	histogram struct {
-		buckets     []int64
-		upperBounds []float64
-		sum         float64
-		count       int64
+		buckets      []int64
+		upperBounds  []float64
+		sum          float64
+		count        int64
+		rangeBuckets bool
 	}
 )
 
@@ -101,14 +104,31 @@ func NewHistogram(buckets []float64) Histogram {
 	}
 }
 
-// WriteTo writes it's values into given map.
-// It add those key-value pairs:
-//   ${key}_sum        gauge, for sum of it's observed values
-//   ${key}_count      counter, for count of it's observed values (equals to +Inf bucket)
-//   ${key}_bucket_1   counter, for 1st bucket count
-//   ${key}_bucket_2   counter, for 2nd bucket count
-//   ...
-//   ${key}_bucket_N   counter, for Nth bucket count
+func NewHistogramWithRangeBuckets(buckets []float64) Histogram {
+	if len(buckets) == 0 {
+		buckets = DefBuckets
+	} else {
+		sort.Slice(buckets, func(i, j int) bool { return buckets[i] < buckets[j] })
+	}
+
+	return &histogram{
+		buckets:      make([]int64, len(buckets)),
+		upperBounds:  buckets,
+		count:        0,
+		sum:          0,
+		rangeBuckets: true,
+	}
+}
+
+// WriteTo writes its values into given map.
+// It adds those key-value pairs:
+//
+//	${key}_sum        gauge, for sum of it's observed values
+//	${key}_count      counter, for count of it's observed values (equals to +Inf bucket)
+//	${key}_bucket_1   counter, for 1st bucket count
+//	${key}_bucket_2   counter, for 2nd bucket count
+//	...
+//	${key}_bucket_N   counter, for Nth bucket count
 func (h histogram) WriteTo(rv map[string]int64, key string, mul, div int) {
 	rv[key+"_sum"] = int64(h.sum * float64(mul) / float64(div))
 	rv[key+"_count"] = h.count
@@ -116,7 +136,15 @@ func (h histogram) WriteTo(rv map[string]int64, key string, mul, div int) {
 	for i, bucket := range h.buckets {
 		name := fmt.Sprintf("%s_bucket_%d", key, i+1)
 		conn += bucket
-		rv[name] = conn
+		if h.rangeBuckets {
+			rv[name] = bucket
+		} else {
+			rv[name] = conn
+		}
+	}
+	if h.rangeBuckets {
+		name := fmt.Sprintf("%s_bucket_inf", key)
+		rv[name] = h.count - conn
 	}
 }
 

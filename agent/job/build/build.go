@@ -1,10 +1,11 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package build
 
 import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 	"sync"
@@ -90,7 +91,7 @@ func NewManager() *Manager {
 		CurState:   dummySaver{},
 		PrevState:  dummyState{},
 		Registry:   dummyRegistry{},
-		Out:        ioutil.Discard,
+		Out:        io.Discard,
 		Logger:     logger.New("build", "manager"),
 		grpCache:   newGroupCache(),
 		startCache: newStartedCache(),
@@ -305,6 +306,15 @@ func (m *Manager) buildJob(cfg confgroup.Config) (*module.Job, error) {
 		return nil, err
 	}
 
+	labels := make(map[string]string)
+	for name, value := range cfg.Labels() {
+		n, ok1 := name.(string)
+		v, ok2 := value.(string)
+		if ok1 && ok2 {
+			labels[n] = v
+		}
+	}
+
 	job := module.NewJob(module.JobConfig{
 		PluginName:      m.PluginName,
 		Name:            cfg.Name(),
@@ -313,6 +323,7 @@ func (m *Manager) buildJob(cfg confgroup.Config) (*module.Job, error) {
 		UpdateEvery:     cfg.UpdateEvery(),
 		AutoDetectEvery: cfg.AutoDetectionRetry(),
 		Priority:        cfg.Priority(),
+		Labels:          labels,
 		Module:          mod,
 		Out:             m.Out,
 	})

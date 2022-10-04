@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package module
 
 import (
@@ -35,12 +37,19 @@ const (
 	PercentOfIncremental DimAlgo = "percentage-of-incremental-row"
 )
 
+const (
+	// Not documented, the source https://github.com/netdata/netdata/blob/7772d35db617fc268a5f8e79d85fc093bef43a8d/database/rrd.h#L180-L186
+
+	LabelSourceConf = 2
+	LabelSourceK8s  = 4
+)
+
 func (d DimAlgo) String() string {
 	switch d {
 	case Absolute, Incremental, PercentOfAbsolute, PercentOfIncremental:
 		return string(d)
 	}
-	return ""
+	return string(Absolute)
 }
 
 func (c ChartType) String() string {
@@ -48,7 +57,7 @@ func (c ChartType) String() string {
 	case Line, Area, Stacked:
 		return string(c)
 	}
-	return ""
+	return string(Line)
 }
 
 type (
@@ -68,7 +77,8 @@ type (
 	Chart struct {
 		// typeID is the unique identification of the chart, if not specified,
 		// the orchestrator will use job full name + chart ID as typeID (default behaviour).
-		typeID string
+		typ string
+		id  string
 
 		ID       string
 		OverID   string
@@ -80,8 +90,9 @@ type (
 		Priority int
 		Opts
 
-		Dims Dims
-		Vars Vars
+		Labels []Label
+		Dims   Dims
+		Vars   Vars
 
 		Retries int
 
@@ -91,8 +102,14 @@ type (
 		// updated flag is used to indicate whether the chart was updated on last data collection interval.
 		updated bool
 
-		// ignore flag is used to indicate that the chart shouldn't be send to the netdata plugins.d
+		// ignore flag is used to indicate that the chart shouldn't be sent to the netdata plugins.d
 		ignore bool
+	}
+
+	Label struct {
+		Key    string
+		Value  string
+		Source int
 	}
 
 	// DimOpts represents dimension options.

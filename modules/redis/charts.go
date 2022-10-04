@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package redis
 
 import "github.com/netdata/go.d.plugin/agent/module"
@@ -6,25 +8,30 @@ const (
 	prioConnections = module.Priority + iota
 	prioClients
 
+	prioPingLatency
+	prioCommands
+	prioKeyLookupHitRate
+
 	prioMemory
 	prioMemoryFragmentationRatio
+	prioKeyEviction
 
 	prioNet
 
 	prioConnectedReplicas
+	prioMasterLastIOSinceTime
+	prioMasterLinkDownSinceTime
 
 	prioPersistenceRDBChanges
 	prioPersistenceRDBBgSaveNow
 	prioPersistenceRDBBgSaveHealth
+	prioPersistenceRDBBgSaveLastSaveSinceTime
 	prioPersistenceAOFSize
 
-	prioCommands
 	prioCommandsCalls
 	prioCommandsUsec
 	prioCommandsUsecPerSec
 
-	prioKeyLookupHitRate
-	prioKeyEviction
 	prioKeyExpiration
 	prioKeys
 	prioExpiresKeys
@@ -36,8 +43,13 @@ var redisCharts = module.Charts{
 	chartConnections.Copy(),
 	chartClients.Copy(),
 
+	pingLatencyCommands.Copy(),
+	chartCommands.Copy(),
+	chartKeyLookupHitRate.Copy(),
+
 	chartMemory.Copy(),
 	chartMemoryFragmentationRatio.Copy(),
+	chartKeyEviction.Copy(),
 
 	chartNet.Copy(),
 
@@ -46,14 +58,12 @@ var redisCharts = module.Charts{
 	chartPersistenceRDBChanges.Copy(),
 	chartPersistenceRDBBgSaveNow.Copy(),
 	chartPersistenceRDBBgSaveHealth.Copy(),
+	chartPersistenceRDBLastSaveSinceTime.Copy(),
 
-	chartCommands.Copy(),
 	chartCommandsCalls.Copy(),
 	chartCommandsUsec.Copy(),
 	chartCommandsUsecPerSec.Copy(),
 
-	chartKeyLookupHitRate.Copy(),
-	chartKeyEviction.Copy(),
 	chartKeyExpiration.Copy(),
 	chartKeys.Copy(),
 	chartExpiresKeys.Copy(),
@@ -91,6 +101,45 @@ var (
 )
 
 var (
+	pingLatencyCommands = module.Chart{
+		ID:       "ping_latency",
+		Title:    "Ping latency",
+		Units:    "seconds",
+		Fam:      "performance",
+		Ctx:      "redis.ping_latency",
+		Priority: prioPingLatency,
+		Type:     module.Area,
+		Dims: module.Dims{
+			{ID: "ping_latency_min", Name: "min", Div: 1e6},
+			{ID: "ping_latency_max", Name: "max", Div: 1e6},
+			{ID: "ping_latency_avg", Name: "avg", Div: 1e6},
+		},
+	}
+	chartCommands = module.Chart{
+		ID:       "commands",
+		Title:    "Processed commands",
+		Units:    "commands/s",
+		Fam:      "performance",
+		Ctx:      "redis.commands",
+		Priority: prioCommands,
+		Dims: module.Dims{
+			{ID: "total_commands_processed", Name: "processed", Algo: module.Incremental},
+		},
+	}
+	chartKeyLookupHitRate = module.Chart{
+		ID:       "key_lookup_hit_rate",
+		Title:    "Keys lookup hit rate",
+		Units:    "percentage",
+		Fam:      "performance",
+		Ctx:      "redis.keyspace_lookup_hit_rate",
+		Priority: prioKeyLookupHitRate,
+		Dims: module.Dims{
+			{ID: "keyspace_hit_rate", Name: "lookup_hit_rate", Div: precision},
+		},
+	}
+)
+
+var (
 	chartMemory = module.Chart{
 		ID:       "memory",
 		Title:    "Memory usage",
@@ -120,6 +169,17 @@ var (
 			{ID: "mem_fragmentation_ratio", Name: "mem_fragmentation", Div: precision},
 		},
 	}
+	chartKeyEviction = module.Chart{
+		ID:       "key_eviction_events",
+		Title:    "Evicted keys due to maxmemory limit",
+		Units:    "keys/s",
+		Fam:      "memory",
+		Ctx:      "redis.key_eviction_events",
+		Priority: prioKeyEviction,
+		Dims: module.Dims{
+			{ID: "evicted_keys", Name: "evicted", Algo: module.Incremental},
+		},
+	}
 )
 
 var (
@@ -143,7 +203,7 @@ var (
 		ID:       "persistence",
 		Title:    "Operations that produced changes since the last SAVE or BGSAVE",
 		Units:    "operations",
-		Fam:      "persistence rdb",
+		Fam:      "persistence",
 		Ctx:      "redis.rdb_changes",
 		Priority: prioPersistenceRDBChanges,
 		Dims: module.Dims{
@@ -154,7 +214,7 @@ var (
 		ID:       "bgsave_now",
 		Title:    "Duration of the on-going RDB save operation if any",
 		Units:    "seconds",
-		Fam:      "persistence rdb",
+		Fam:      "persistence",
 		Ctx:      "redis.bgsave_now",
 		Priority: prioPersistenceRDBBgSaveNow,
 		Dims: module.Dims{
@@ -165,11 +225,22 @@ var (
 		ID:       "bgsave_health",
 		Title:    "Status of the last RDB save operation (0: ok, 1: err)",
 		Units:    "status",
-		Fam:      "persistence rdb",
+		Fam:      "persistence",
 		Ctx:      "redis.bgsave_health",
 		Priority: prioPersistenceRDBBgSaveHealth,
 		Dims: module.Dims{
 			{ID: "rdb_last_bgsave_status", Name: "last_bgsave"},
+		},
+	}
+	chartPersistenceRDBLastSaveSinceTime = module.Chart{
+		ID:       "bgsave_last_rdb_save_since_time",
+		Title:    "Time elapsed since the last successful RDB save",
+		Units:    "seconds",
+		Fam:      "persistence",
+		Ctx:      "redis.bgsave_last_rdb_save_since_time",
+		Priority: prioPersistenceRDBBgSaveLastSaveSinceTime,
+		Dims: module.Dims{
+			{ID: "rdb_last_save_time", Name: "last_bgsave_time"},
 		},
 	}
 
@@ -177,7 +248,7 @@ var (
 		ID:       "persistence_aof_size",
 		Title:    "AOF file size",
 		Units:    "bytes",
-		Fam:      "persistence aof",
+		Fam:      "persistence",
 		Ctx:      "redis.aof_file_size",
 		Priority: prioPersistenceAOFSize,
 		Dims: module.Dims{
@@ -188,17 +259,6 @@ var (
 )
 
 var (
-	chartCommands = module.Chart{
-		ID:       "commands",
-		Title:    "Processed commands",
-		Units:    "commands/s",
-		Fam:      "commands",
-		Ctx:      "redis.commands",
-		Priority: prioCommands,
-		Dims: module.Dims{
-			{ID: "total_commands_processed", Name: "processed", Algo: module.Incremental},
-		},
-	}
 	chartCommandsCalls = module.Chart{
 		ID:       "commands_calls",
 		Title:    "Calls per command",
@@ -228,28 +288,6 @@ var (
 )
 
 var (
-	chartKeyLookupHitRate = module.Chart{
-		ID:       "key_lookup_hit_rate",
-		Title:    "Keys lookup hit rate",
-		Units:    "percentage",
-		Fam:      "keyspace",
-		Ctx:      "redis.keyspace_lookup_hit_rate",
-		Priority: prioKeyLookupHitRate,
-		Dims: module.Dims{
-			{ID: "keyspace_hit_rate", Name: "lookup_hit_rate", Div: precision},
-		},
-	}
-	chartKeyEviction = module.Chart{
-		ID:       "key_eviction_events",
-		Title:    "Evicted keys due to maxmemory limit",
-		Units:    "keys/s",
-		Fam:      "keyspace",
-		Ctx:      "redis.key_eviction_events",
-		Priority: prioKeyEviction,
-		Dims: module.Dims{
-			{ID: "evicted_keys", Name: "evicted", Algo: module.Incremental},
-		},
-	}
 	chartKeyExpiration = module.Chart{
 		ID:       "key_expiration_events",
 		Title:    "Expired keys",
@@ -291,6 +329,28 @@ var (
 		Priority: prioConnectedReplicas,
 		Dims: module.Dims{
 			{ID: "connected_slaves", Name: "connected"},
+		},
+	}
+	masterLastIOSinceTimeChart = module.Chart{
+		ID:       "master_last_io_since_time",
+		Title:    "Time elapsed since the last interaction with master",
+		Units:    "seconds",
+		Fam:      "replication",
+		Ctx:      "redis.master_last_io_since_time",
+		Priority: prioMasterLastIOSinceTime,
+		Dims: module.Dims{
+			{ID: "master_last_io_seconds_ago", Name: "time"},
+		},
+	}
+	masterLinkDownSinceTimeChart = module.Chart{
+		ID:       "master_link_down_since_stime",
+		Title:    "Time elapsed since the link between master and slave is down",
+		Units:    "seconds",
+		Fam:      "replication",
+		Ctx:      "redis.master_link_down_since_time",
+		Priority: prioMasterLinkDownSinceTime,
+		Dims: module.Dims{
+			{ID: "master_link_down_since_seconds", Name: "time"},
 		},
 	}
 )

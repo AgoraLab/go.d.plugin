@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package wmi
 
 import (
@@ -27,13 +29,14 @@ func New() *WMI {
 			},
 		},
 		cache: cache{
-			collection: make(map[string]bool),
-			collectors: make(map[string]bool),
-			cores:      make(map[string]bool),
-			nics:       make(map[string]bool),
-			volumes:    make(map[string]bool),
+			collection:   make(map[string]bool),
+			collectors:   make(map[string]bool),
+			cores:        make(map[string]bool),
+			nics:         make(map[string]bool),
+			volumes:      make(map[string]bool),
+			thermalZones: make(map[string]bool),
 		},
-		charts: collectionCharts(),
+		charts: newCollectionCharts(),
 	}
 }
 
@@ -49,11 +52,12 @@ type (
 		charts *Charts
 	}
 	cache struct {
-		collectors map[string]bool
-		collection map[string]bool
-		cores      map[string]bool
-		nics       map[string]bool
-		volumes    map[string]bool
+		collectors   map[string]bool
+		collection   map[string]bool
+		cores        map[string]bool
+		nics         map[string]bool
+		volumes      map[string]bool
+		thermalZones map[string]bool
 	}
 )
 

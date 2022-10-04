@@ -10,26 +10,34 @@ sidebar_label: "Windows machines"
 This module will monitor one or more Windows machines, using
 the [windows_exporter](https://github.com/prometheus-community/windows_exporter).
 
-Module collects metrics from the following collectors:
+The module collects metrics from the following collectors:
 
-- cpu
-- memory
-- net
-- logical_disk
-- os
-- system
-- logon
-
-Run `windows_exporter` with these collectors:
-
-> windows_exporter-0.13.0-amd64.exe --collectors.enabled="cpu,memory,net,logical_disk,os,system,logon"
+- [cpu](https://github.com/prometheus-community/windows_exporter/blob/master/docs/collector.cpu.md)
+- [memory](https://github.com/prometheus-community/windows_exporter/blob/master/docs/collector.memory.md)
+- [net](https://github.com/prometheus-community/windows_exporter/blob/master/docs/collector.net.md)
+- [logical_disk](https://github.com/prometheus-community/windows_exporter/blob/master/docs/collector.logical_disk.md)
+- [os](https://github.com/prometheus-community/windows_exporter/blob/master/docs/collector.os.md)
+- [system](https://github.com/prometheus-community/windows_exporter/blob/master/docs/collector.system.md)
+- [logon](https://github.com/prometheus-community/windows_exporter/blob/master/docs/collector.logon.md)
+- [thermalzone](https://github.com/prometheus-community/windows_exporter/blob/master/docs/collector.thermalzone.md)
 
 
 Installation: please follow the [official guide](https://github.com/prometheus-community/windows_exporter#installation).
 
 ## Requirements
 
-- `windows_exporter` version v0.13.0+
+`windows_exporter` version v0.13.0+
+
+- On your Windows machine [download the latest version of the windows_exporter msi](https://github.com/prometheus-community/windows_exporter/releases)
+
+- Install the `windows_exporter` with `msiexec` and the parameters shown below:
+
+  ```msiexec -i <path-to-msi-file> ENABLED_COLLECTORS=cpu,memory,net,logical_disk,os,system,logon,thermalzone```
+  
+  The msi installer automatically adds and starts a service called `windows_exporter`, which listens to port 9182 by default. 
+  Full installation instructions options can be found  [here](https://github.com/prometheus-community/windows_exporter/releases).
+
+- Verify that the exporter works properly by accessing http://localhost:9182/
 
 ## Charts
 
@@ -82,6 +90,10 @@ Installation: please follow the [official guide](https://github.com/prometheus-c
 
 - Active User Logon Sessions By Type in `sessions`
 
+### thermalzone
+
+- Thermal zone temperature in `celsius`
+
 ## Configuration
 
 Edit the `go.d/wmi.conf` configuration file using `edit-config` from the
@@ -111,17 +123,21 @@ module [configuration file](https://github.com/netdata/go.d.plugin/blob/master/c
 To troubleshoot issues with the `wmi` collector, run the `go.d.plugin` with the debug option enabled. The output should
 give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m wmi
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m wmi
+  ```

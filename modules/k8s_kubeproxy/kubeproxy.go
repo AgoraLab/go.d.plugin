@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package k8s_kubeproxy
 
 import (
@@ -18,7 +20,7 @@ func init() {
 	creator := module.Creator{
 		Defaults: module.Defaults{
 			// NETDATA_CHART_PRIO_CGROUPS_CONTAINERS        40000
-			Priority: 39900,
+			Priority: 40100,
 		},
 		Create: func() module.Module { return New() },
 	}

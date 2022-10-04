@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package prometheus
 
 import (
@@ -7,7 +9,7 @@ import (
 	"github.com/netdata/go.d.plugin/pkg/prometheus"
 
 	"github.com/netdata/go.d.plugin/agent/module"
-	"github.com/prometheus/prometheus/pkg/textparse"
+	"github.com/prometheus/prometheus/model/textparse"
 )
 
 type (
@@ -30,7 +32,7 @@ var statsCharts = Charts{
 	},
 }
 
-func anyChart(id string, pm prometheus.Metric, meta prometheus.Metadata) *module.Chart {
+func anyChart(id, app string, pm prometheus.Metric, meta prometheus.Metadata) *module.Chart {
 	units := extractUnits(pm.Name())
 	if isIncremental(pm, meta) && !isIncrementalUnitsException(units) {
 		units += "/s"
@@ -44,7 +46,7 @@ func anyChart(id string, pm prometheus.Metric, meta prometheus.Metadata) *module
 		Title: chartTitle(pm, meta),
 		Units: units,
 		Fam:   chartFamily(pm),
-		Ctx:   "prometheus." + pm.Name(),
+		Ctx:   chartContext(app, pm),
 		Type:  cType,
 	}
 }
@@ -57,19 +59,19 @@ func isIncrementalUnitsException(units string) bool {
 	return false
 }
 
-func summaryChart(id string, pm prometheus.Metric, meta prometheus.Metadata) *module.Chart {
+func summaryChart(id, app string, pm prometheus.Metric, meta prometheus.Metadata) *module.Chart {
 	return &module.Chart{
 		ID:    id,
 		Title: chartTitle(pm, meta),
 		Units: "observations",
 		Fam:   chartFamily(pm),
-		Ctx:   "prometheus." + pm.Name(),
+		Ctx:   chartContext(app, pm),
 		Type:  module.Stacked,
 	}
 }
 
-func histogramChart(id string, pm prometheus.Metric, meta prometheus.Metadata) *module.Chart {
-	return summaryChart(id, pm, meta)
+func histogramChart(id, app string, pm prometheus.Metric, meta prometheus.Metadata) *module.Chart {
+	return summaryChart(id, app, pm, meta)
 }
 
 func chartTitle(pm prometheus.Metric, meta prometheus.Metadata) string {
@@ -103,6 +105,13 @@ func chartFamily(pm prometheus.Metric) (fam string) {
 		return fam[:i+1]
 	}
 	return fam
+}
+
+func chartContext(app string, pm prometheus.Metric) string {
+	if app == "" {
+		return fmt.Sprintf("prometheus.%s", pm.Name())
+	}
+	return fmt.Sprintf("prometheus.%s.%s", app, pm.Name())
 }
 
 func anyChartDimension(id, name string, pm prometheus.Metric, meta prometheus.Metadata) *module.Dim {

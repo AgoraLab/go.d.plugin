@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 set -e
 
 PLATFORMS=(
   darwin/amd64
+  darwin/arm64
   freebsd/386
   freebsd/amd64
   freebsd/arm

@@ -1,15 +1,32 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package snmp
 
 import (
 	"fmt"
-	"time"
+	"strings"
 
-	gosnmp "github.com/gosnmp/gosnmp"
 	"github.com/netdata/go.d.plugin/agent/module"
+
+	"github.com/gosnmp/gosnmp"
+)
+
+const (
+	defaultUpdateEvery = 10
+	defaultHostname    = "127.0.0.1"
+	defaultCommunity   = "public"
+	defaultVersion     = gosnmp.Version2c
+	defaultPort        = 161
+	defaultRetries     = 1
+	defaultTimeout     = defaultUpdateEvery
+	defaultMaxOIDs     = 60
 )
 
 func init() {
 	creator := module.Creator{
+		Defaults: module.Defaults{
+			UpdateEvery: defaultUpdateEvery,
+		},
 		Create: func() module.Module { return New() },
 	}
 
@@ -17,19 +34,16 @@ func init() {
 }
 
 func New() *SNMP {
-	comm := "public"
 	return &SNMP{
 		Config: Config{
-			SNMPClient:  gosnmp.NewHandler(),
-			Name:        "127.0.0.1",
-			Community:   &comm,
-			UpdateEvery: 3,
-			Options: &Options{
-				Port:    161,
-				Retries: 1,
-				Timeout: 2,
-				Version: 2,
-				MaxOIDs: 60,
+			Hostname:  defaultHostname,
+			Community: defaultCommunity,
+			Options: Options{
+				Port:    defaultPort,
+				Retries: defaultRetries,
+				Timeout: defaultUpdateEvery,
+				Version: defaultVersion.String(),
+				MaxOIDs: defaultMaxOIDs,
 			},
 		},
 	}
@@ -37,51 +51,54 @@ func New() *SNMP {
 
 type (
 	Config struct {
-		SNMPClient  gosnmp.Handler
-		Name        string         `yaml:"hostname"`
-		UpdateEvery int            `yaml:"update_every"`
-		Community   *string        `yaml:"community,omitempty"`
-		User        *User          `yaml:"user,omitempty"`
-		Options     *Options       `yaml:"options,omitempty"`
-		ChartInput  []ChartsConfig `yaml:"charts,omitempty"`
+		UpdateEvery int           `yaml:"update_every"`
+		Hostname    string        `yaml:"hostname"`
+		Community   string        `yaml:"community"`
+		User        User          `yaml:"user"`
+		Options     Options       `yaml:"options"`
+		ChartsInput []ChartConfig `yaml:"charts"`
 	}
 	User struct {
-		Name      string `yaml:"name"`
-		Level     int    `yaml:"level"`
-		AuthProto int    `yaml:"auth_proto"`
-		AuthKey   string `yaml:"auth_key"`
-		PrivProto int    `yaml:"priv_proto"`
-		PrivKey   string `yaml:"priv_key"`
+		Name          string `yaml:"name"`
+		SecurityLevel string `yaml:"level"`
+		AuthProto     string `yaml:"auth_proto"`
+		AuthKey       string `yaml:"auth_key"`
+		PrivProto     string `yaml:"priv_proto"`
+		PrivKey       string `yaml:"priv_key"`
 	}
 	Options struct {
-		Port    int `yaml:"port"`
-		Retries int `yaml:"retries"`
-		Timeout int `yaml:"timeout"`
-		Version int `yaml:"version"`
-		MaxOIDs int `yaml:"max_request_size"`
+		Port    int    `yaml:"port"`
+		Retries int    `yaml:"retries"`
+		Timeout int    `yaml:"timeout"`
+		Version string `yaml:"version"`
+		MaxOIDs int    `yaml:"max_request_size"`
 	}
-	ChartsConfig struct {
-		Title         string      `yaml:"title"`
-		Priority      int         `yaml:"priority"`
-		Units         *string     `yaml:"units,omitempty"`
-		Type          *string     `yaml:"type,omitempty"`
-		Family        *string     `yaml:"family,omitempty"`
-		MultiplyRange [2]int      `yaml:"multiply_range,omitempty"`
-		Dimensions    []Dimension `yaml:"dimensions,omitempty"`
+	ChartConfig struct {
+		ID         string            `yaml:"id"`
+		Title      string            `yaml:"title"`
+		Units      string            `yaml:"units"`
+		Family     string            `yaml:"family"`
+		Type       string            `yaml:"type"`
+		Priority   int               `yaml:"priority"`
+		IndexRange []int             `yaml:"multiply_range"`
+		Dimensions []DimensionConfig `yaml:"dimensions"`
 	}
-	Dimension struct {
-		Name       string  `yaml:"name"`
-		OID        string  `yaml:"oid"`
-		Algorithm  *string `yaml:"algorithm"`
-		Multiplier *int    `yaml:"multiplier"`
-		Divisor    *int    `yaml:"divisor"`
+	DimensionConfig struct {
+		OID        string `yaml:"oid"`
+		Name       string `yaml:"name"`
+		Algorithm  string `yaml:"algorithm"`
+		Multiplier int    `yaml:"multiplier"`
+		Divisor    int    `yaml:"divisor"`
 	}
 )
 
 type SNMP struct {
 	module.Base
 	Config `yaml:",inline"`
-	charts *module.Charts
+
+	charts     *module.Charts
+	snmpClient gosnmp.Handler
+	oids       []string
 }
 
 func (s *SNMP) Init() bool {
@@ -90,49 +107,31 @@ func (s *SNMP) Init() bool {
 		s.Errorf("config validation: %v", err)
 		return false
 	}
-	//Default SNMP connection params
-	s.SNMPClient.SetTarget(s.Name)
-	s.SNMPClient.SetPort(uint16(s.Options.Port))
-	s.SNMPClient.SetMaxOids(s.Options.MaxOIDs)
-	s.SNMPClient.SetLogger(gosnmp.NewLogger(s.Logger))
-	s.SNMPClient.SetTimeout(time.Duration(s.Options.Timeout) * time.Second)
 
-	switch s.Options.Version {
-	case 1:
-		s.SNMPClient.SetCommunity(*s.Community)
-		s.SNMPClient.SetVersion(gosnmp.Version1)
-
-	case 2:
-		s.SNMPClient.SetCommunity(*s.Community)
-		s.SNMPClient.SetVersion(gosnmp.Version2c)
-
-	case 3:
-		s.SNMPClient.SetVersion(gosnmp.Version3)
-		s.SNMPClient.SetSecurityModel(gosnmp.SnmpV3SecurityModel(s.User.Level))
-		s.SNMPClient.SetMsgFlags(gosnmp.SnmpV3MsgFlags(gosnmp.AuthPriv)) //TODO:
-		s.SNMPClient.SetSecurityParameters(&gosnmp.UsmSecurityParameters{
-			UserName:                 s.User.Name,
-			AuthenticationProtocol:   gosnmp.SnmpV3AuthProtocol(s.User.AuthProto),
-			AuthenticationPassphrase: s.User.AuthKey,
-			PrivacyProtocol:          gosnmp.SnmpV3PrivProtocol(s.User.PrivProto),
-			PrivacyPassphrase:        s.User.PrivKey,
-		})
-
-	default:
-		s.Errorf("invalid SNMP version: %d", s.Options.Version)
+	snmpClient, err := s.initSNMPClient()
+	if err != nil {
+		s.Errorf("SNMP client initialization: %v", err)
 		return false
 	}
 
-	if len(s.ChartInput) > 0 {
-		s.charts = newChart(s.ChartInput)
-	} else {
-		c := defaultSNMPchart.Copy()
-		c.ID = fmt.Sprintf(c.ID, 1)
-		c.Title = fmt.Sprint(c.Title, "default")
-		_ = c.AddDim(defaultDims[0])
-		_ = c.AddDim(defaultDims[1])
-		s.charts = &module.Charts{c}
+	s.Info(snmpClientConnInfo(snmpClient))
+
+	err = snmpClient.Connect()
+	if err != nil {
+		s.Errorf("SNMP client connect: %v", err)
+		return false
 	}
+	s.snmpClient = snmpClient
+
+	charts, err := newCharts(s.ChartsInput)
+	if err != nil {
+		s.Errorf("Population of charts failed: %v", err)
+		return false
+	}
+	s.charts = charts
+
+	s.oids = s.initOIDs()
+
 	return true
 }
 
@@ -156,6 +155,20 @@ func (s *SNMP) Collect() map[string]int64 {
 	return mx
 }
 
-func (s SNMP) Cleanup() {
-	s.SNMPClient.Close()
+func (s *SNMP) Cleanup() {
+	if s.snmpClient != nil {
+		_ = s.snmpClient.Close()
+	}
+}
+
+func snmpClientConnInfo(c gosnmp.Handler) string {
+	var info strings.Builder
+	info.WriteString(fmt.Sprintf("hostname=%s,port=%d,snmp_version=%s", c.Target(), c.Port(), c.Version()))
+	switch c.Version() {
+	case gosnmp.Version1, gosnmp.Version2c:
+		info.WriteString(fmt.Sprintf(",community=%s", c.Community()))
+	case gosnmp.Version3:
+		info.WriteString(fmt.Sprintf(",security_level=%d,%s", c.MsgFlags(), c.SecurityParameters().Description()))
+	}
+	return info.String()
 }

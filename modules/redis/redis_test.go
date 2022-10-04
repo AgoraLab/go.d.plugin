@@ -1,9 +1,12 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package redis
 
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/netdata/go.d.plugin/pkg/tlscfg"
@@ -14,8 +17,8 @@ import (
 )
 
 var (
-	pikaInfoAll, _ = ioutil.ReadFile("testdata/pika/info_all.txt")
-	v609InfoAll, _ = ioutil.ReadFile("testdata/v6.0.9/info_all.txt")
+	pikaInfoAll, _ = os.ReadFile("testdata/pika/info_all.txt")
+	v609InfoAll, _ = os.ReadFile("testdata/v6.0.9/info_all.txt")
 )
 
 func Test_Testdata(t *testing.T) {
@@ -219,6 +222,11 @@ func TestRedis_Collect(t *testing.T) {
 				"module_fork_in_progress":         0,
 				"module_fork_last_cow_size":       0,
 				"number_of_cached_scripts":        0,
+				"ping_latency_avg":                0,
+				"ping_latency_count":              5,
+				"ping_latency_max":                0,
+				"ping_latency_min":                0,
+				"ping_latency_sum":                0,
 				"process_id":                      1,
 				"pubsub_channels":                 0,
 				"pubsub_patterns":                 0,
@@ -228,7 +236,7 @@ func TestRedis_Collect(t *testing.T) {
 				"rdb_last_bgsave_status":          0,
 				"rdb_last_bgsave_time_sec":        0,
 				"rdb_last_cow_size":               290816,
-				"rdb_last_save_time":              1606951667,
+				"rdb_last_save_time":              56978305,
 				"redis_git_dirty":                 0,
 				"redis_git_sha1":                  0,
 				"rejected_connections":            0,
@@ -285,6 +293,8 @@ func TestRedis_Collect(t *testing.T) {
 			rdb := test.prepare(t)
 
 			ms := rdb.Collect()
+
+			copyTimeRelatedMetrics(ms, test.wantCollected)
 
 			assert.Equal(t, test.wantCollected, ms)
 			if len(test.wantCollected) > 0 {
@@ -364,19 +374,36 @@ func ensureCollectedDbsAddedToCharts(t *testing.T, rdb *Redis) {
 	}
 }
 
+func copyTimeRelatedMetrics(dst, src map[string]int64) {
+	for k, v := range src {
+		switch {
+		case k == "rdb_last_save_time",
+			strings.HasPrefix(k, "ping_latency"):
+
+			if _, ok := dst[k]; ok {
+				dst[k] = v
+			}
+		}
+	}
+}
+
 type mockRedisClient struct {
 	errOnInfo   bool
 	result      []byte
 	calledClose bool
 }
 
-func (m mockRedisClient) Info(_ context.Context, _ ...string) (cmd *redis.StringCmd) {
+func (m *mockRedisClient) Info(_ context.Context, _ ...string) (cmd *redis.StringCmd) {
 	if m.errOnInfo {
 		cmd = redis.NewStringResult("", errors.New("error on Info"))
 	} else {
 		cmd = redis.NewStringResult(string(m.result), nil)
 	}
 	return cmd
+}
+
+func (m *mockRedisClient) Ping(_ context.Context) (cmd *redis.StatusCmd) {
+	return redis.NewStatusResult("PONG", nil)
 }
 
 func (m *mockRedisClient) Close() error {

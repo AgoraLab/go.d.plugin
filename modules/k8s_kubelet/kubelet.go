@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package k8s_kubelet
 
 import (
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/netdata/go.d.plugin/pkg/prometheus"
@@ -14,7 +16,7 @@ func init() {
 	creator := module.Creator{
 		Defaults: module.Defaults{
 			// NETDATA_CHART_PRIO_CGROUPS_CONTAINERS        40000
-			Priority: 39900,
+			Priority: 40100,
 		},
 		Create: func() module.Module { return New() },
 	}
@@ -66,7 +68,7 @@ func (Kubelet) Cleanup() {}
 
 // Init makes initialization.
 func (k *Kubelet) Init() bool {
-	b, err := ioutil.ReadFile(k.TokenPath)
+	b, err := os.ReadFile(k.TokenPath)
 	if err != nil {
 		k.Warningf("error on reading service account token from '%s': %v", k.TokenPath, err)
 	} else {

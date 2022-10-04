@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package prometheus
 
 import (
@@ -40,7 +42,7 @@ func (p *Prometheus) collectHistogram(mx map[string]int64, pms prometheus.Metric
 		set[chartID] = pm.Value
 
 		if !cache.hasChart(chartID) {
-			chart := histogramChart(chartID, pm, meta)
+			chart := histogramChart(chartID, p.application(), pm, meta)
 			cache.putChart(chartID, chart)
 			if err := p.Charts().Add(chart); err != nil {
 				p.Warning(err)

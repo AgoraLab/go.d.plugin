@@ -1,9 +1,12 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package agent
 
 import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/netdata/go.d.plugin/agent/job/confgroup"
 	"github.com/netdata/go.d.plugin/agent/job/discovery"
@@ -102,20 +105,33 @@ func (a *Agent) buildDiscoveryConf(enabled module.Registry) discovery.Config {
 	var readPaths, dummyPaths []string
 
 	if len(a.ModulesConfDir) == 0 {
+		if isInsideK8sCluster() {
+			return discovery.Config{Registry: reg}
+		}
 		a.Info("modules conf dir not provided, will use default config for all enabled modules")
 		for name := range enabled {
 			dummyPaths = append(dummyPaths, name)
 		}
 		return discovery.Config{
 			Registry: reg,
-			Dummy:    dummy.Config{Names: dummyPaths}}
+			Dummy:    dummy.Config{Names: dummyPaths},
+		}
 	}
 
 	for name := range enabled {
-		cfgPath := name + ".conf"
-		a.Infof("looking for '%s' in %v", cfgPath, a.ModulesConfDir)
+		cfgName := name + ".conf"
+		a.Infof("looking for '%s' in %v", cfgName, a.ModulesConfDir)
 
-		path, err := a.ModulesConfDir.Find(cfgPath)
+		path, err := a.ModulesConfDir.Find(cfgName)
+		if isInsideK8sCluster() {
+			if err != nil {
+				a.Infof("not found '%s', won't use default (reading stock configs is disabled in k8s)", cfgName)
+				continue
+			} else if isStockConfig(path) {
+				a.Infof("found '%s', but won't load it (reading stock configs is disabled in k8s)", cfgName)
+				continue
+			}
+		}
 		if err != nil {
 			a.Infof("couldn't find '%s' module config, will use default config", name)
 			dummyPaths = append(dummyPaths, name)
@@ -189,7 +205,7 @@ func loadYAML(conf interface{}, path string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	if err = yaml.NewDecoder(f).Decode(conf); err != nil {
 		if err == io.EOF {
@@ -198,4 +214,19 @@ func loadYAML(conf interface{}, path string) error {
 		return err
 	}
 	return nil
+}
+
+var (
+	envKubeHost         = os.Getenv("KUBERNETES_SERVICE_HOST")
+	envKubePort         = os.Getenv("KUBERNETES_SERVICE_PORT")
+	envNDStockConfigDir = os.Getenv("NETDATA_STOCK_CONFIG_DIR")
+)
+
+func isInsideK8sCluster() bool { return envKubeHost != "" && envKubePort != "" }
+
+func isStockConfig(path string) bool {
+	if envNDStockConfigDir == "" {
+		return false
+	}
+	return strings.HasPrefix(path, envNDStockConfigDir)
 }
