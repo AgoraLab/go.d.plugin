@@ -25,16 +25,19 @@ by [reading the response on the following query](https://manpages.debian.org/str
 ;evictions.bind.   CH	 TXT
 ;hits.bind.        CH	 TXT
 ;misses.bind.      CH	 TXT
-;auth.bind.        CH	 TXT
 ;servers.bind.     CH	 TXT
 ```
 
-## Charts
+## Metrics
 
-- Queries forwarded to the upstream servers in `queries/s`
-- Cache size in `entries`
-- Cache operations in `operations/s`
-- Cache performance in `events/s`
+All metrics have "dnsmasq." prefix.
+
+| Metric            | Scope  |      Dimensions       |    Units     |
+|-------------------|:------:|:---------------------:|:------------:|
+| servers_queries   | global |    success, failed    |  queries/s   |
+| cache_size        | global |         size          |   entries    |
+| cache_operations  | global | insertions, evictions | operations/s |
+| cache_performance | global |     hist, misses      |   events/s   |
 
 ## Configuration
 

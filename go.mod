@@ -9,7 +9,7 @@ require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/axiomhq/hyperloglog v0.0.0-20220105174342-98591331716a
 	github.com/blang/semver/v4 v4.0.0
-	github.com/cloudflare/cfssl v1.6.2
+	github.com/cloudflare/cfssl v1.6.3
 	github.com/coreos/go-systemd/v22 v22.4.0
 	github.com/docker/docker v20.10.18+incompatible
 	github.com/fsnotify/fsnotify v1.5.4
@@ -34,7 +34,7 @@ require (
 	github.com/tomasen/fcgi_client v0.0.0-20180423082037-2bb3d819fd19
 	github.com/valyala/fastjson v1.6.3
 	github.com/vmware/govmomi v0.22.2
-	go.mongodb.org/mongo-driver v1.10.2
+	go.mongodb.org/mongo-driver v1.10.3
 	golang.org/x/text v0.3.7
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20220504211119-3d4a969bb56b
 	gopkg.in/ini.v1 v1.67.0
