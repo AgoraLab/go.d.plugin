@@ -14,6 +14,7 @@ require (
 	github.com/docker/docker v24.0.6+incompatible
 	github.com/facebook/time v0.0.0-20220713141651-bfc62ed6ec5f
 	github.com/fsnotify/fsnotify v1.6.0
+	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/godbus/dbus/v5 v5.1.0

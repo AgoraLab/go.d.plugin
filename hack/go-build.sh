@@ -23,6 +23,10 @@ PLATFORMS=(
   linux/mips64le
 )
 
+CGO_ENABLE_PLATFORMS=(
+    linux/amd64
+)
+
 getos() {
   local IFS=/ && read -ra array <<< "$1" && echo "${array[0]}"
 }
@@ -39,8 +43,16 @@ GOLDFLAGS=${GLDFLAGS:-}
 GOLDFLAGS="$GOLDFLAGS -w -s -X main.version=$VERSION"
 
 build() {
+
+  if printf '%s\n' "${CGO_ENABLE_PLATFORMS[@]}" | grep -q "^${GOOS}/${GOARCH}$"; then
+      CGO_ENABLED=1
+  else
+      CGO_ENABLED=0
+  fi
+
   echo "Building ${GOOS}/${GOARCH}"
-  CGO_ENABLED=0 GOOS="$1" GOARCH="$2" go build -ldflags "${GOLDFLAGS}" -o "$3" "github.com/netdata/go.d.plugin/cmd/godplugin"
+  echo "SET CGO_ENABLE $CGO_ENABLED"
+  GOOS="$1" GOARCH="$2" go build -ldflags "${GOLDFLAGS}" -o "$3" "github.com/netdata/go.d.plugin/cmd/godplugin"
 }
 
 build_all_platforms() {
