@@ -1,45 +1,185 @@
-<!--
-title: "MongoDB monitoring with Netdata"
-description: "Monitor the health and performance of MongoDB with zero configuration, per-second metric granularity, and interactive visualizations."
-custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/mongodb/README.md
-sidebar_label: "MongoDB"
--->
+# MongoDB collector
 
-# MongoDB monitoring with Netdata
+## Overview
 
-[`MongoDB`](https://www.mongodb.com/) MongoDB is a source-available cross-platform document-oriented database program.
-Classified as a NoSQL database program, MongoDB uses JSON-like documents with optional schemas. MongoDB is developed by
-MongoDB Inc. and licensed under the Server Side Public License (SSPL).
+[MongoDB](https://www.mongodb.com/) is a source-available cross-platform document-oriented database program.
 
-source: [`Wikipedia`](https://en.wikipedia.org/wiki/MongoDB)
+This collector monitors one or more MongoDB instances, depending on your configuration.
 
----
+Executed queries:
 
-This module monitors one or more `MongoDB` instances, depending on your configuration.
+- [serverStatus](https://docs.mongodb.com/manual/reference/command/serverStatus/)
+- [dbStats](https://docs.mongodb.com/manual/reference/command/dbStats/)
+- [replSetGetStatus](https://www.mongodb.com/docs/manual/reference/command/replSetGetStatus/)
 
-It collects information and statistics about the server executing the following commands:
+## Collected metrics
 
-- [`serverStatus`](https://docs.mongodb.com/manual/reference/command/serverStatus/#mongodb-dbcommand-dbcmd.serverStatus)
-- [`dbStats`](https://docs.mongodb.com/manual/reference/command/dbStats/#dbstats)
+Metrics grouped by *scope*.
 
-## Prerequisites
+The scope defines the instance that the metric belongs to. An instance is uniquely identified by a set of labels.
+
+- WireTiger metrics are available only if [WiredTiger](https://docs.mongodb.com/v6.0/core/wiredtiger/) is used as the
+  storage engine.
+- Sharding metrics are available on shards only
+  for [mongos](https://www.mongodb.com/docs/manual/reference/program/mongos/).
+
+### global
+
+These metrics refer to the entire monitored application.
+
+This scope has no labels.
+
+Metrics:
+
+| Metric                                                 |                                                        Dimensions                                                        |      Unit      |
+|--------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------:|:--------------:|
+| mongodb.operations_rate                                |                                                 reads, writes, commands                                                  |  operations/s  |
+| mongodb.operations_latency_time                        |                                                 reads, writes, commands                                                  |  milliseconds  |
+| mongodb.operations_by_type_rate                        |                                     insert, query, update, delete, getmore, command                                      |  operations/s  |
+| mongodb.document_operations_rate                       |                                           inserted, deleted, returned, updated                                           |  operations/s  |
+| mongodb.scanned_indexes_rate                           |                                                         scanned                                                          |   indexes/s    |
+| mongodb.scanned_documents_rate                         |                                                         scanned                                                          |  documents/s   |
+| mongodb.active_clients_count                           |                                                     readers, writers                                                     |    clients     |
+| mongodb.queued_operations_count                        |                                                      reads, writes                                                       |   operations   |
+| mongodb.cursors_open_count                             |                                                           open                                                           |    cursors     |
+| mongodb.cursors_open_no_timeout_count                  |                                                     open_no_timeout                                                      |    cursors     |
+| mongodb.cursors_opened_rate                            |                                                          opened                                                          |   cursors/s    |
+| mongodb.cursors_timed_out_rate                         |                                                        timed_out                                                         |   cursors/s    |
+| mongodb.cursors_by_lifespan_count                      |                                  le_1s, 1s_5s, 5s_15s, 15s_30s, 30s_1m, 1m_10m, ge_10m                                   |    cursors     |
+| mongodb.transactions_count                             |                                             active, inactive, open, prepared                                             |  transactions  |
+| mongodb.transactions_rate                              |                                          started, aborted, committed, prepared                                           | transactions/s |
+| mongodb.connections_usage                              |                                                     available, used                                                      |  connections   |
+| mongodb.connections_by_state_count                     |                      active, threaded, exhaust_is_master, exhaust_hello, awaiting_topology_changes                       |  connections   |
+| mongodb.connections_rate                               |                                                         created                                                          | connections/s  |
+| mongodb.asserts_rate                                   |                                     regular, warning, msg, user, tripwire, rollovers                                     |   asserts/s    |
+| mongodb.network_traffic_rate                           |                                                         in, out                                                          |    bytes/s     |
+| mongodb.network_requests_rate                          |                                                         requests                                                         |   requests/s   |
+| mongodb.network_slow_dns_resolutions_rate              |                                                         slow_dns                                                         | resolutions/s  |
+| mongodb.network_slow_ssl_handshakes_rate               |                                                         slow_ssl                                                         |  handshakes/s  |
+| mongodb.memory_resident_size                           |                                                           used                                                           |     bytes      |
+| mongodb.memory_virtual_size                            |                                                           used                                                           |     bytes      |
+| mongodb.memory_page_faults_rate                        |                                                         pgfaults                                                         |   pgfaults/s   |
+| mongodb.memory_tcmalloc_stats                          | allocated, central_cache_freelist, transfer_cache_freelist, thread_cache_freelists, pageheap_freelist, pageheap_unmapped |     bytes      |
+| mongodb.wiredtiger_concurrent_read_transactions_usage  |                                                     available, used                                                      |  transactions  |
+| mongodb.wiredtiger_concurrent_write_transactions_usage |                                                     available, used                                                      |  transactions  |
+| mongodb.wiredtiger_cache_usage                         |                                                           used                                                           |     bytes      |
+| mongodb.wiredtiger_cache_dirty_space_size              |                                                          dirty                                                           |     bytes      |
+| mongodb.wiredtiger_cache_io_rate                       |                                                      read, written                                                       |    pages/s     |
+| mongodb.wiredtiger_cache_evictions_rate                |                                                   unmodified, modified                                                   |    pages/s     |
+| mongodb.sharding_nodes_count                           |                                                shard_aware, shard_unaware                                                |     nodes      |
+| mongodb.sharding_sharded_databases_count               |                                                partitioned, unpartitioned                                                |   databases    |
+| mongodb.sharding_sharded_collections_count             |                                                partitioned, unpartitioned                                                |  collections   |
+
+### lock type
+
+These metrics refer to the lock type.
+
+Labels:
+
+| Label     | Description                                          |
+|-----------|------------------------------------------------------|
+| lock_type | lock type (e.g. global, database, collection, mutex) |
+
+Metrics:
+
+| Metric                         |                     Dimensions                     |      Unit      |
+|--------------------------------|:--------------------------------------------------:|:--------------:|
+| mongodb.lock_acquisitions_rate | shared, exclusive, intent_shared, intent_exclusive | acquisitions/s |
+
+### commit type
+
+These metrics refer to the commit type.
+
+Labels:
+
+| Label       | Description                                                |
+|-------------|------------------------------------------------------------|
+| commit_type | commit type (e.g. noShards, singleShard, singleWriteShard) |
+
+Metrics:
+
+| Metric                                     |  Dimensions   |     Unit     |
+|--------------------------------------------|:-------------:|:------------:|
+| mongodb.transactions_commits_rate          | success, fail |  commits/s   |
+| mongodb.transactions_commits_duration_time |    commits    | milliseconds |
+
+### database
+
+These metrics refer to the database.
+
+Labels:
+
+| Label    | Description   |
+|----------|---------------|
+| database | database name |
+
+Metrics:
+
+| Metric                            |  Dimensions  |    Unit     |
+|-----------------------------------|:------------:|:-----------:|
+| mongodb.database_collection_count | collections  | collections |
+| mongodb.database_indexes_count    |   indexes    |   indexes   |
+| mongodb.database_views_count      |    views     |    views    |
+| mongodb.database_documents_count  |  documents   |  documents  |
+| mongodb.database_data_size        |  data_size   |    bytes    |
+| mongodb.database_storage_size     | storage_size |    bytes    |
+| mongodb.database_index_size       |  index_size  |    bytes    |
+
+### replica set member
+
+These metrics refer to the replica set member.
+
+Labels:
+
+| Label           | Description             |
+|-----------------|-------------------------|
+| repl_set_member | replica set member name |
+
+Metrics:
+
+| Metric                                         |                                          Dimensions                                          |     Unit     |
+|------------------------------------------------|:--------------------------------------------------------------------------------------------:|:------------:|
+| mongodb.repl_set_member_state                  | primary, startup, secondary, recovering, startup2, unknown, arbiter, down, rollback, removed |    state     |
+| mongodb.repl_set_member_health_status          |                                           up, down                                           |    status    |
+| mongodb.repl_set_member_replication_lag_time   |                                       replication_lag                                        | milliseconds |
+| mongodb.repl_set_member_heartbeat_latency_time |                                      heartbeat_latency                                       | milliseconds |
+| mongodb.repl_set_member_ping_rtt_time          |                                           ping_rtt                                           | milliseconds |
+| mongodb.repl_set_member_uptime                 |                                            uptime                                            |   seconds    |
+
+### shard
+
+These metrics refer to the shard.
+
+Labels:
+
+| Label    | Description |
+|----------|-------------|
+| shard_id | shard id    |
+
+Metrics:
+
+| Metric                              | Dimensions |  Unit  |
+|-------------------------------------|:----------:|:------:|
+| mongodb.sharding_shard_chunks_count |   chunks   | chunks |
+
+## Setup
+
+### Prerequisites
+
+#### Create a read-only user
 
 Create a read-only user for Netdata in the admin database.
 
-- Authenticate as the admin user.
+- Authenticate as the admin user:
 
   ```bash
   use admin
   db.auth("admin", "<MONGODB_ADMIN_PASSWORD>")
   ```
 
-- Create a user.
+- Create a user:
 
   ```bash
-  # MongoDB 2.x.
-  db.addUser("netdata", "<UNIQUE_PASSWORD>", true)
-  
-  # MongoDB 3.x or higher.
   db.createUser({
     "user":"netdata",
     "pwd": "<UNIQUE_PASSWORD>",
@@ -51,82 +191,123 @@ Create a read-only user for Netdata in the admin database.
   })
   ```
 
-## Metrics
+### Configuration
 
-All metrics have "mongodb." prefix.
+#### File
 
-- WireTiger metrics are available only if [WiredTiger](https://docs.mongodb.com/v5.0/core/wiredtiger/) is used as the
-  storage engine.
-- Sharding metris are available on shards only
-  for [mongos](https://docs.mongodb.com/manual/reference/command/serverStatus/#mongodb-serverstatus-serverstatus.process)
+The configuration file name is `go.d/mongodb.conf`.
 
-| Metric                        | Scope  |                                                                                                                                                                                          Dimensions                                                                                                                                                                                          |     Units      |
-|-------------------------------|:------:|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:--------------:|
-| operations                    | global |                                                                                                                                                                       insert, query, update, delete, getmore, command                                                                                                                                                                        |     ops/s      |
-| operations_latency            | global |                                                                                                                                                                                   reads, writes, commands                                                                                                                                                                                    |  milliseconds  |
-| connections                   | global |                                                                                                                                                                                      current, available                                                                                                                                                                                      |  connections   |
-| connections_rate              | global |                                                                                                                                                                                           created                                                                                                                                                                                            | connections/s  |
-| connections_state             | global |                                                                                                                                                          active, threaded, exhaustIsMaster, exhaustHello, awaiting_topology_changes                                                                                                                                                          |  connections   |
-| network_io                    | global |                                                                                                                                                                                           in, out                                                                                                                                                                                            |    bytes/s     |
-| network_requests              | global |                                                                                                                                                                                           requests                                                                                                                                                                                           |   requests/s   |
-| page_faults                   | global |                                                                                                                                                                                         page_faults                                                                                                                                                                                          | page_faults/s  |
-| tcmalloc_generic              | global |                                                                                                                                                                                 current_allocated, heap_size                                                                                                                                                                                 |     bytes      |
-| tcmalloc                      | global |                                                                                                                         pageheap_free, pageheap_unmapped, total_threaded_cache, free, pageheap_committed, pageheap_total_commit, pageheap_decommit, pageheap_reserve                                                                                                                         |     bytes      |
-| asserts                       | global |                                                                                                                                                                       regular, warning, msg, user, tripwire, rollovers                                                                                                                                                                       |   asserts/s    |
-| current_transactions          | global |                                                                                                                                                                               active, inactive, open, prepared                                                                                                                                                                               |  transactions  |
-| shard_commit_types            | global |                                                                                                                no_shard_init, no_shard_successful, single_shard_init, single_shard_successful, shard_write_init, shard_write_successful, two_phase_init, two_phase_successful                                                                                                                |    commits     |
-| active_clients                | global |                                                                                                                                                                                       readers, writers                                                                                                                                                                                       |    clients     |
-| queued_operations             | global |                                                                                                                                                                                       readers, writers                                                                                                                                                                                       |   operation    |
-| locks                         | global |                                                                                                                                                 global_read, global_write, database_read, database_write, collection_read, collection_write                                                                                                                                                  |   operation    |
-| flow_control_timings          | global |                                                                                                                                                                                      acquiring, lagged                                                                                                                                                                                       |  milliseconds  |
-| wiredtiger_blocks             | global |                                                                                                                                     read, read_via_memory_map_api, read_via_system_call_api, written, written_for_checkpoint, written_via_memory_map_api                                                                                                                                     |     bytes      |
-| wiredtiger_cache              | global |                                                                                                                                                                  allocated_for_updates, read_into_cache, written_from_cache                                                                                                                                                                  |     bytes      |
-| wiredtiger_capacity           | global |                                                                                                                                                    due_to_total_capacity, during_checkpoint, during_eviction, during_logging, during_read                                                                                                                                                    |      usec      |
-| wiredtiger_connection         | global |                                                                                                                                                                   memory_allocations, memory_frees, memory_re_allocations                                                                                                                                                                    |     ops/s      |
-| wiredtiger_cursor             | global | open_count, cached_count, bulk_loaded_insert_calls, close_calls_that_result_in_cache, create_calls, insert_calls, modify_calls, next_calls, operation_restarted, prev_calls, remove_calls, reserve_calls, cursor_reset_calls, search_calls, search_history_store_calls, search_near_calls, sweep_buckets, sweep_cursors_closed, sweep_cursors_examined, sweeps, truncate_calls, update_calls |    calls/s     |
-| wiredtiger_lock               | global |                                                                                   checkpoint, dhandle_read, dhandle_write, durable_timestamp_queue_read, durable_timestamp_queue_write, metadata, read_timestamp_queue_read, read_timestamp_queue_write, schema, table_read, table_write, txn_global_read                                                                                    |     ops/s      |
-| wiredtiger_lock_duration      | global |          checkpoint, checkpoint_internal_thread, dhandle_application_thread, dhandle_internal_thread, durable_timestamp_queue_application_thread, durable_timestamp_queue_internal_thread, metadata_application_thread, metadata_internal_thread, read_timestamp_queue_application_thread, read_timestamp_queue_internal_thread, schema_application_thread, schema_internal_thread           |   operation    |
-| wiredtiger_log_ops            | global |                                                                                                                                                             flush, force_write, force_write_skipped, scan, sync, sync_dir, write                                                                                                                                                             |     ops/s      |
-| wiredtiger_transactions       | global |                                                                                                                                              prepared, query_timestamp, rollback_to_stable, set_timestamp, begins, sync, committed, rolled back                                                                                                                                              | transactions/s |
-| database_collections          | global |                                                                                                                                                                               <i>a dimension per database</i>                                                                                                                                                                                |  collections   |
-| database_indexes              | global |                                                                                                                                                                               <i>a dimension per database</i>                                                                                                                                                                                |    indexes     |
-| database_views                | global |                                                                                                                                                                               <i>a dimension per database</i>                                                                                                                                                                                |     views      |
-| database_documents            | global |                                                                                                                                                                               <i>a dimension per database</i>                                                                                                                                                                                |   documents    |
-| database_storage_size         | global |                                                                                                                                                                               <i>a dimension per database</i>                                                                                                                                                                                |     bytes      |
-| replication_lag               | global |                                                                                                                                                                          <i>a dimension per replication member</i>                                                                                                                                                                           |  milliseconds  |
-| replication_heartbeat_latency | global |                                                                                                                                                                          <i>a dimension per replication member</i>                                                                                                                                                                           |  milliseconds  |
-| replication_node_ping         | global |                                                                                                                                                                          <i>a dimension per replication member</i>                                                                                                                                                                           |  milliseconds  |
-| shard_nodes_count             | global |                                                                                                                                                                                  shard_aware, shard_unaware                                                                                                                                                                                  |     nodes      |
-| shard_databases_status        | global |                                                                                                                                                                                 partitioned, un-partitioned                                                                                                                                                                                  |   databases    |
-| chunks                        | global |                                                                                                                                                                                 <i>a dimension per shard</i>                                                                                                                                                                                 |     chunks     |
+The file format is YAML. Generally, the format is:
 
-## Configuration
+```yaml
+update_every: 1
+autodetection_retry: 0
+jobs:
+  - name: some_name1
+  - name: some_name1
+```
 
-Edit the `go.d/mongodb.conf` configuration file using `edit-config` from the
-Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
+You can edit the configuration file using the `edit-config` script from the
+Netdata [config directory](https://github.com/netdata/netdata/blob/master/docs/configure/nodes.md#the-netdata-config-directory).
 
 ```bash
-cd /etc/netdata   # Replace this path with your Netdata config directory, if different
+cd /etc/netdata 2>/dev/null || cd /opt/netdata/etc/netdata
 sudo ./edit-config go.d/mongodb.conf
 ```
 
-Sample using connection string:
+#### Options
 
-**This is the preferred way**
+The following options can be defined globally: update_every, autodetection_retry.
+
+<details>
+<summary>Config options</summary>
+
+|        Name         | Description                                                                                                    |          Default          | Required |
+|:-------------------:|----------------------------------------------------------------------------------------------------------------|:-------------------------:|:--------:|
+|    update_every     | Data collection frequency.                                                                                     |             5             |          |
+| autodetection_retry | Re-check interval in seconds. Zero means not to schedule re-check.                                             |             0             |          |
+|         uri         | MongoDB connection string. See [URI syntax](https://www.mongodb.com/docs/manual/reference/connection-string/). | mongodb://localhost:27017 |   yes    |
+|       timeout       | Query timeout in seconds.                                                                                      |             2             |          |
+|      databases      | Databases selector. Determines which database metrics will be collected.                                       |                           |          |
+
+</details>
+
+##### databases
+
+Metrics of databases matching the selector will be collected.
+
+- Logic: (pattern1 OR pattern2) AND !(pattern3 or pattern4)
+- Pattern syntax: [matcher](https://github.com/netdata/go.d.plugin/tree/master/pkg/matcher#supported-format).
+- Syntax:
+  ```yaml
+  per_user_stats:
+    includes:
+      - pattern1
+      - pattern2
+    excludes:
+      - pattern3
+      - pattern4
+  ```
+
+#### Examples
+
+##### TCP socket
+
+An example configuration.
+<details>
+<summary>Config</summary>
 
 ```yaml
-uri: 'mongodb://localhost:27017'
+jobs:
+  - name: local
+    uri: mongodb://netdata:password@localhost:27017
 ```
 
-If no configuration is given, module will attempt to connect to mongodb daemon on `127.0.0.1:27017` address
+</details>
 
-For all available options, see the `mongodb`
-collector's [configuration file](https://github.com/netdata/go.d.plugin/blob/master/config/go.d/mongodb.conf).
+##### With databases metrics
+
+An example configuration.
+<details>
+<summary>Config</summary>
+
+```yaml
+jobs:
+  - name: local
+    uri: mongodb://netdata:password@localhost:27017
+    databases:
+      includes:
+        - "* *"
+```
+
+</details>
+
+##### Multi-instance
+
+> **Note**: When you define multiple jobs, their names must be unique.
+
+Local and remote instances.
+
+<details>
+<summary>Config</summary>
+
+```yaml
+jobs:
+  - name: local
+    uri: mongodb://netdata:password@localhost:27017
+
+  - name: remote
+    uri: mongodb://netdata:password@203.0.113.0:27017
+```
+
+</details>
 
 ## Troubleshooting
 
-To troubleshoot issues with the `mongodb` collector, run the `go.d.plugin` with the debug option enabled. The output
-should give you clues as to why the collector isn't working.
+### Debug mode
+
+To troubleshoot issues with the `mongodb` collector, run the `go.d.plugin` with the debug option enabled.
+The output should give you clues as to why the collector isn't working.
 
 - Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
   your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.

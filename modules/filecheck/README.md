@@ -1,11 +1,14 @@
 <!--
 title: "Files and directories monitoring with Netdata"
 description: "Monitor the health and performance of files and directories with zero configuration, per-second metric granularity, and interactive visualizations."
-custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/filecheck/README.md
+custom_edit_url: "https://github.com/netdata/go.d.plugin/edit/master/modules/filecheck/README.md"
 sidebar_label: "Files and Dirs"
+learn_status: "Published"
+learn_topic_type: "References"
+learn_rel_path: "Integrations/Monitor/System metrics"
 -->
 
-# filecheck
+# Files and directories collector
 
 This module monitors files and directories.
 
@@ -56,7 +59,7 @@ All metrics have "filecheck." prefix.
 ## Configuration
 
 Edit the `go.d/filecheck.conf` configuration file using `edit-config` from the
-Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
+Netdata [config directory](https://github.com/netdata/netdata/blob/master/docs/configure/nodes.md), which is typically at `/etc/netdata`.
 
 ```bash
 cd /etc/netdata # Replace this path with your Netdata config directory

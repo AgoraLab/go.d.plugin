@@ -1,11 +1,14 @@
 <!--
 title: "Bind9 monitoring with Netdata"
 description: "Monitor the health and performance of Bind9 DNS servers with zero configuration, per-second metric granularity, and interactive visualizations."
-custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/bind/README.md
+custom_edit_url: "https://github.com/netdata/go.d.plugin/edit/master/modules/bind/README.md"
 sidebar_label: "Bind9"
+learn_status: "Published"
+learn_topic_type: "References"
+learn_rel_path: "Integrations/Monitor/Webapps"
 -->
 
-# Bind9 monitoring with Netdata
+# Bind9 collector
 
 [`Bind9`](https://www.isc.org/bind/) (or named) is a very flexible, full-featured DNS system.
 
@@ -57,7 +60,7 @@ Per View Statistics (the following set will be added for each bind view):
 ## Configuration
 
 Edit the `go.d/bind.conf` configuration file using `edit-config` from the
-Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
+Netdata [config directory](https://github.com/netdata/netdata/blob/master/docs/configure/nodes.md), which is typically at `/etc/netdata`.
 
 ```bash
 cd /etc/netdata # Replace this path with your Netdata config directory

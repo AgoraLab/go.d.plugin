@@ -3,6 +3,7 @@
 package confgroup
 
 import (
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -36,6 +37,7 @@ func (c Config) Provider() string          { v, _ := c.get("__provider__").(stri
 func (c Config) SetModule(source string)   { c.set("module", source) }
 func (c Config) SetSource(source string)   { c.set("__source__", source) }
 func (c Config) SetProvider(source string) { c.set("__provider__", source) }
+func (c Config) Vnode() string             { v, _ := c.get("vnode").(string); return v }
 
 func (c Config) set(key string, value interface{}) { c[key] = value }
 func (c Config) get(key string) interface{}        { return c[key] }
@@ -59,15 +61,19 @@ func (c Config) Apply(def Default) {
 	if c.Name() == "" {
 		c.set("name", c.Module())
 	} else {
-		c.set("name", cleanName(c.Name()))
+		c.set("name", cleanName(jobNameResolveHostname(c.Name())))
+	}
+
+	if v, ok := c.get("url").(string); ok {
+		c.set("url", urlResolveHostname(v))
 	}
 }
 
 func cleanName(name string) string {
-	return reSpace.ReplaceAllString(name, "_")
+	return reInvalidCharacters.ReplaceAllString(name, "_")
 }
 
-var reSpace = regexp.MustCompile(`\s+`)
+var reInvalidCharacters = regexp.MustCompile(`\s+|\.+`)
 
 func fullName(name, module string) string {
 	if name == module {
@@ -86,4 +92,31 @@ func firstPositive(value int, others ...int) int {
 		return value
 	}
 	return firstPositive(others[0], others[1:]...)
+}
+
+func urlResolveHostname(rawURL string) string {
+	if hostname == "" || !strings.Contains(rawURL, "hostname") {
+		return rawURL
+	}
+
+	u, err := url.Parse(rawURL)
+	if err != nil || (u.Hostname() != "hostname" && !strings.Contains(u.Hostname(), "hostname.")) {
+		return rawURL
+	}
+
+	u.Host = strings.Replace(u.Host, "hostname", hostname, 1)
+
+	return u.String()
+}
+
+func jobNameResolveHostname(name string) string {
+	if hostname == "" || !strings.Contains(name, "hostname") {
+		return name
+	}
+
+	if name != "hostname" && !strings.HasPrefix(name, "hostname.") && !strings.HasPrefix(name, "hostname_") {
+		return name
+	}
+
+	return strings.Replace(name, "hostname", hostname, 1)
 }

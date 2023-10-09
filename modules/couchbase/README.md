@@ -1,11 +1,14 @@
 <!--
 title: "Couchbase monitoring with Netdata"
 description: "Monitor the health and performance of Couchbase databases with zero configuration, per-second metric granularity, and interactive visualizations."
-custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/couchbase/README.md
+custom_edit_url: "https://github.com/netdata/go.d.plugin/edit/master/modules/couchbase/README.md"
 sidebar_label: "Couchbase"
+learn_status: "Published"
+learn_topic_type: "References"
+learn_rel_path: "Integrations/Monitor/Databases"
 -->
 
-# Couchbase monitoring with Netdata
+# Couchbase collector
 
 [Couchbase](https://www.couchbase.com/) is an open source, distributed, JSON document database. It exposes a scale-out,
 key-value store with managed cache for sub-millisecond data operations, purpose-built indexers for efficient queries and
@@ -46,7 +49,7 @@ Collected from `/pools/default/buckets ` endpoint.
 ## Configuration
 
 Edit the `go.d/couchbase.conf` configuration file using `edit-config` from the
-Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
+Netdata [config directory](https://github.com/netdata/netdata/blob/master/docs/configure/nodes.md), which is typically at `/etc/netdata`.
 
 ```bash
 cd /etc/netdata # Replace this path with your Netdata config directory

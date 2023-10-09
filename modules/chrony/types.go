@@ -192,9 +192,11 @@ func (ct chronyTimespec) EpochSeconds() float64 {
 	return float64(ts)
 }
 
-/* 32-bit floating-point format consisting of 7-bit signed exponent
-   and 25-bit signed coefficient without hidden bit.
-   The result is calculated as: 2^(exp - 25) * coef */
+
+// chronyFloat is a 32-bit floating-point 
+// format consisting of 7-bit signed exponent 
+// and 25-bit signed coefficient without hidden bit.
+// The result is calculated as: 2^(exp - 25) * coef
 type chronyFloat int32
 
 // ToFloat does magic to decode float from int32.

@@ -1,10 +1,13 @@
 <!--
 title: "SNMP device monitoring with Netdata"
-custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/snmp/README.md
+custom_edit_url: "https://github.com/netdata/go.d.plugin/edit/master/modules/snmp/README.md"
 sidebar_label: "SNMP"
+learn_status: "Published"
+learn_topic_type: "References"
+learn_rel_path: "Integrations/Monitor/Remotes"
 -->
 
-# SNMP device monitoring with Netdata
+# SNMP device collector
 
 Collects data from any SNMP device and uses the [gosnmp](https://github.com/gosnmp/gosnmp) package.
 
@@ -21,7 +24,7 @@ It supports:
 ## Configuration
 
 Edit the `go.d/snmp.conf` configuration file using `edit-config` from the
-Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes#the-netdata-config-directory), which is
+Netdata [config directory](https://github.com/netdata/netdata/blob/master/docs/configure/nodes.md#the-netdata-config-directory), which is
 typically at `/etc/netdata`.
 
 ```bash
@@ -132,6 +135,9 @@ jobs:
             multiplier: -8
             divisor: 1000
 ```
+
+Note that in this example, the algorithm chosen is `incremental`, because the collected values show the total number of bytes transferred,
+which we need to transform into kbps. To chart gauges (e.g. temperature), use `absolute` instead. 
 
 ### Example: Using SNMPv3
 

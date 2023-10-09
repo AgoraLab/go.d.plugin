@@ -1,11 +1,14 @@
 <!--
 title: "Fluentd monitoring with Netdata"
 description: "Monitor the health and performance of Fluentd servers with zero configuration, per-second metric granularity, and interactive visualizations."
-custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/fluentd/README.md
+custom_edit_url: "https://github.com/netdata/go.d.plugin/edit/master/modules/fluentd/README.md"
 sidebar_label: "Fluentd"
+learn_status: "Published"
+learn_topic_type: "References"
+learn_rel_path: "Integrations/Monitor/Logs"
 -->
 
-# Fluentd monitoring with Netdata
+# Fluentd collector
 
 [`Fluentd`](https://www.fluentd.org/) is an open source data collector for unified logging layer.
 
@@ -29,7 +32,7 @@ All metrics have "fluentd." prefix.
 ## Configuration
 
 Edit the `go.d/fluentd.conf` configuration file using `edit-config` from the
-Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
+Netdata [config directory](https://github.com/netdata/netdata/blob/master/docs/configure/nodes.md), which is typically at `/etc/netdata`.
 
 ```bash
 cd /etc/netdata # Replace this path with your Netdata config directory

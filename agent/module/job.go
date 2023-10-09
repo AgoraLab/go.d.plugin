@@ -6,12 +6,14 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/netdata/go.d.plugin/agent/job/vnode"
 	"github.com/netdata/go.d.plugin/agent/netdataapi"
 	"github.com/netdata/go.d.plugin/logger"
 )
@@ -34,6 +36,8 @@ func shouldObsoleteCharts() bool {
 var writeLock = &sync.Mutex{}
 
 var reSpace = regexp.MustCompile(`\s+`)
+
+var ndInternalMonitoringDisabled = os.Getenv("NETDATA_INTERNALS_MONITORING") == "NO"
 
 func newRuntimeChart(pluginName string) *Chart {
 	// this is needed to keep the same name as we had before https://github.com/netdata/go.d.plugin/issues/650
@@ -66,6 +70,10 @@ type JobConfig struct {
 	UpdateEvery     int
 	AutoDetectEvery int
 	Priority        int
+
+	VnodeGUID     string
+	VnodeHostname string
+	VnodeLabels   map[string]string
 }
 
 const (
@@ -93,6 +101,10 @@ func NewJob(cfg JobConfig) *Job {
 		tick:            make(chan int),
 		buf:             &buf,
 		api:             netdataapi.New(&buf),
+
+		vnodeGUID:     cfg.VnodeGUID,
+		vnodeHostname: cfg.VnodeHostname,
+		vnodeLabels:   cfg.VnodeLabels,
 	}
 }
 
@@ -127,10 +139,15 @@ type Job struct {
 	prevRun time.Time
 
 	stop chan struct{}
+
+	vnodeCreated  bool
+	vnodeGUID     string
+	vnodeHostname string
+	vnodeLabels   map[string]string
 }
 
 // NetdataChartIDMaxLength is the chart ID max length. See RRD_ID_LENGTH_MAX in the netdata source code.
-const NetdataChartIDMaxLength = 200
+const NetdataChartIDMaxLength = 1000
 
 // FullName returns job full name.
 func (j Job) FullName() string {
@@ -247,6 +264,14 @@ func (j *Job) Cleanup() {
 		return
 	}
 
+	if !vnode.Disabled {
+		if !j.vnodeCreated && j.vnodeGUID != "" {
+			_ = j.api.HOSTINFO(j.vnodeGUID, j.vnodeHostname, j.vnodeLabels)
+			j.vnodeCreated = true
+		}
+		_ = j.api.HOST(j.vnodeGUID)
+	}
+
 	if j.runChart.created {
 		j.runChart.MarkRemove()
 		j.createChart(j.runChart)
@@ -259,6 +284,7 @@ func (j *Job) Cleanup() {
 			}
 		}
 	}
+
 	if j.buf.Len() > 0 {
 		writeLock.Lock()
 		_, _ = io.Copy(j.out, j.buf)
@@ -337,7 +363,16 @@ func (j *Job) collect() (result map[string]int64) {
 }
 
 func (j *Job) processMetrics(metrics map[string]int64, startTime time.Time, sinceLastRun int) bool {
-	if !j.runChart.created {
+	if !vnode.Disabled {
+		if !j.vnodeCreated && j.vnodeGUID != "" {
+			_ = j.api.HOSTINFO(j.vnodeGUID, j.vnodeHostname, j.vnodeLabels)
+			j.vnodeCreated = true
+		}
+
+		_ = j.api.HOST(j.vnodeGUID)
+	}
+
+	if !ndInternalMonitoringDisabled && !j.runChart.created {
 		j.runChart.ID = fmt.Sprintf("execution_time_of_%s", j.FullName())
 		j.createChart(j.runChart)
 	}
@@ -372,7 +407,10 @@ func (j *Job) processMetrics(metrics map[string]int64, startTime time.Time, sinc
 	if updated == 0 {
 		return false
 	}
-	j.updateChart(j.runChart, map[string]int64{"time": elapsed}, sinceLastRun)
+	if !ndInternalMonitoringDisabled {
+		j.updateChart(j.runChart, map[string]int64{"time": elapsed}, sinceLastRun)
+	}
+
 	return true
 }
 
@@ -388,7 +426,7 @@ func (j *Job) createChart(chart *Chart) {
 	}
 	_ = j.api.CHART(
 		getChartType(chart, j),
-		getChartID(chart, j),
+		getChartID(chart),
 		chart.OverID,
 		chart.Title,
 		chart.Units,
@@ -404,7 +442,7 @@ func (j *Job) createChart(chart *Chart) {
 
 	seen := make(map[string]bool)
 	for _, l := range chart.Labels {
-		if l.Key != "" && l.Value != "" {
+		if l.Key != "" {
 			seen[l.Key] = true
 			ls := l.Source
 			// the default should be auto
@@ -434,10 +472,11 @@ func (j *Job) createChart(chart *Chart) {
 		)
 	}
 	for _, v := range chart.Vars {
-		_ = j.api.VARIABLE(
-			v.ID,
-			v.Value,
-		)
+		if v.Name != "" {
+			_ = j.api.VARIABLE(v.Name, v.Value)
+		} else {
+			_ = j.api.VARIABLE(v.ID, v.Value)
+		}
 	}
 	_ = j.api.EMPTYLINE()
 }
@@ -460,7 +499,7 @@ func (j *Job) updateChart(chart *Chart, collected map[string]int64, sinceLastRun
 
 	_ = j.api.BEGIN(
 		getChartType(chart, j),
-		getChartID(chart, j),
+		getChartID(chart),
 		sinceLastRun,
 	)
 	var i, updated int
@@ -481,7 +520,11 @@ func (j *Job) updateChart(chart *Chart, collected map[string]int64, sinceLastRun
 
 	for _, vr := range chart.Vars {
 		if v, ok := collected[vr.ID]; ok {
-			_ = j.api.VARIABLE(vr.ID, v)
+			if vr.Name != "" {
+				_ = j.api.VARIABLE(vr.Name, v)
+			} else {
+				_ = j.api.VARIABLE(vr.ID, v)
+			}
 		}
 
 	}
@@ -507,22 +550,26 @@ func getChartType(chart *Chart, j *Job) string {
 	if chart.typ != "" {
 		return chart.typ
 	}
-	if j.ModuleName() != "k8s_state" {
-		return j.FullName()
-	}
-	if i := strings.IndexByte(chart.ID, '.'); i != -1 {
+	if !chart.IDSep {
+		chart.typ = j.FullName()
+	} else if i := strings.IndexByte(chart.ID, '.'); i != -1 {
 		chart.typ = j.FullName() + "_" + chart.ID[:i]
 	} else {
 		chart.typ = j.FullName()
 	}
+	if chart.OverModule != "" {
+		if v := strings.TrimPrefix(chart.typ, j.ModuleName()); v != chart.typ {
+			chart.typ = chart.OverModule + v
+		}
+	}
 	return chart.typ
 }
 
-func getChartID(chart *Chart, j *Job) string {
+func getChartID(chart *Chart) string {
 	if chart.id != "" {
 		return chart.id
 	}
-	if j.ModuleName() != "k8s_state" {
+	if !chart.IDSep {
 		return chart.ID
 	}
 	if i := strings.IndexByte(chart.ID, '.'); i != -1 {

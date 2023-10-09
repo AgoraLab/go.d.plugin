@@ -107,6 +107,7 @@ func (p *Postgres) doQueryQueryableDatabases() error {
 			conn.connErrors++
 			_ = db.Close()
 			stdlib.UnregisterConnConfig(connStr)
+			continue
 		}
 
 		indexes, err := p.doDBQueryUserIndexesCount(db)
@@ -115,15 +116,16 @@ func (p *Postgres) doQueryQueryableDatabases() error {
 			conn.connErrors++
 			_ = db.Close()
 			stdlib.UnregisterConnConfig(connStr)
+			continue
 		}
 
-		// charts: 20 x table, 4 x index.
-		// https://discord.com/channels/847502280503590932/1022693928874549368
-		if tables > 50 || indexes > 250 {
-			p.Warningf("database '%s' has too many user tables(%d)/indexes(%d), skipping it", dbname, tables, indexes)
+		if (p.MaxDBTables != 0 && tables > p.MaxDBTables) || (p.MaxDBIndexes != 0 && indexes > p.MaxDBIndexes) {
+			p.Warningf("database '%s' has too many user tables(%d/%d)/indexes(%d/%d), skipping it",
+				dbname, tables, p.MaxDBTables, indexes, p.MaxDBIndexes)
 			conn.connErrors = connErrMax
 			_ = db.Close()
 			stdlib.UnregisterConnConfig(connStr)
+			continue
 		}
 
 		conn.db, conn.connStr = db, connStr

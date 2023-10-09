@@ -1,26 +1,34 @@
 <!--
 title: "DNS query monitoring with Netdata"
 description: "Monitor the health and performance of DNS query round-trip time with zero configuration, per-second metric granularity, and interactive visualizations."
-custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/dnsquery/README.md
+custom_edit_url: "https://github.com/netdata/go.d.plugin/edit/master/modules/dnsquery/README.md"
 sidebar_label: "DNS queries"
+learn_status: "Published"
+learn_topic_type: "References"
+learn_rel_path: "Integrations/Monitor/Networking"
 -->
 
-# DNS query monitoring with Netdata
+# DNS query collector
 
-This module provides DNS query RTT in milliseconds.
+This module provides DNS query round-trip time (RTT).
 
 ## Metrics
 
-All metrics have "dnsquery." prefix.
+All metrics have "dns_query." prefix.
 
-| Metric     | Scope  |             Dimensions             | Units |
-|------------|:------:|:----------------------------------:|:-----:|
-| query_time | global | <i>a dimension per name server</i> |  ms   |
+Labels per scope:
+
+- server: server, network, record_type.
+
+| Metric       | Scope  |            Dimensions             |  Units  |
+|--------------|:------:|:---------------------------------:|:-------:|
+| query_time   | server |            query_time             | seconds |
+| query_status | server | success, network_error, dns_error | status  |
 
 ## Configuration
 
 Edit the `go.d/dns_query.conf` configuration file using `edit-config` from the
-Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
+Netdata [config directory](https://github.com/netdata/netdata/blob/master/docs/configure/nodes.md), which is typically at `/etc/netdata`.
 
 ```bash
 cd /etc/netdata # Replace this path with your Netdata config directory
@@ -32,6 +40,9 @@ Here is an example:
 ```yaml
 jobs:
   - name: job1
+    record_types:
+      - A
+      - AAAA
     domains:
       - google.com
       - github.com

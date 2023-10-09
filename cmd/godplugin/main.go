@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/netdata/go.d.plugin/agent"
@@ -15,6 +15,7 @@ import (
 	"github.com/netdata/go.d.plugin/pkg/multipath"
 
 	"github.com/jessevdk/go-flags"
+	"golang.org/x/net/http/httpproxy"
 
 	_ "github.com/netdata/go.d.plugin/modules"
 )
@@ -42,8 +43,8 @@ func confDir(opts *cli.Option) multipath.MultiPath {
 		)
 	}
 	return multipath.New(
-		path.Join(cd, "/../../../../etc/netdata"),
-		path.Join(cd, "/../../../../usr/lib/netdata/conf.d"),
+		filepath.Join(cd, "/../../../../etc/netdata"),
+		filepath.Join(cd, "/../../../../usr/lib/netdata/conf.d"),
 	)
 }
 
@@ -53,16 +54,16 @@ func modulesConfDir(opts *cli.Option) (mpath multipath.MultiPath) {
 	}
 	if userDir != "" || stockDir != "" {
 		if userDir != "" {
-			mpath = append(mpath, path.Join(userDir, name))
+			mpath = append(mpath, filepath.Join(userDir, name))
 		}
 		if stockDir != "" {
-			mpath = append(mpath, path.Join(stockDir, name))
+			mpath = append(mpath, filepath.Join(stockDir, name))
 		}
 		return multipath.New(mpath...)
 	}
 	return multipath.New(
-		path.Join(cd, "/../../../../etc/netdata", name),
-		path.Join(cd, "/../../../../usr/lib/netdata/conf.d", name),
+		filepath.Join(cd, "/../../../../etc/netdata", name),
+		filepath.Join(cd, "/../../../../usr/lib/netdata/conf.d", name),
 	)
 }
 
@@ -77,7 +78,7 @@ func stateFile() string {
 	if varLibDir == "" {
 		return ""
 	}
-	return path.Join(varLibDir, "god-jobs-statuses.json")
+	return filepath.Join(varLibDir, "god-jobs-statuses.json")
 }
 
 func init() {
@@ -104,6 +105,7 @@ func main() {
 		ConfDir:           confDir(opts),
 		ModulesConfDir:    modulesConfDir(opts),
 		ModulesSDConfPath: watchPaths(opts),
+		VnodesConfDir:     confDir(opts),
 		StateFile:         stateFile(),
 		LockDir:           lockDir,
 		RunModule:         opts.Module,
@@ -114,6 +116,9 @@ func main() {
 	if u, err := user.Current(); err == nil {
 		a.Debugf("current user: name=%s, uid=%s", u.Username, u.Uid)
 	}
+
+	cfg := httpproxy.FromEnvironment()
+	a.Infof("env HTTP_PROXY '%s', HTTPS_PROXY '%s' (both upper and lower case are respected)", cfg.HTTPProxy, cfg.HTTPSProxy)
 
 	a.Run()
 }

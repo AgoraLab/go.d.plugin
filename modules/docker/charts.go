@@ -2,20 +2,28 @@
 
 package docker
 
-import "github.com/netdata/go.d.plugin/agent/module"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/netdata/go.d.plugin/agent/module"
+)
 
 const (
 	prioContainersState = module.Priority + iota
 	prioContainersHealthy
-	prioContainersUnhealthy
+
+	prioContainerState
+	prioContainerHealthStatus
+	prioContainerWritableLayerSize
+
 	prioImagesCount
 	prioImagesSize
 )
 
-var charts = module.Charts{
+var summaryCharts = module.Charts{
 	containersStateChart.Copy(),
 	containersHealthyChart.Copy(),
-	containersUnhealthyChart.Copy(),
 
 	imagesCountChart.Copy(),
 	imagesSizeChart.Copy(),
@@ -24,38 +32,31 @@ var charts = module.Charts{
 var (
 	containersStateChart = module.Chart{
 		ID:       "containers_state",
-		Title:    "Number of containers in different states",
+		Title:    "Total number of Docker containers in various states",
 		Units:    "containers",
 		Fam:      "containers",
 		Ctx:      "docker.containers_state",
 		Priority: prioContainersState,
 		Type:     module.Stacked,
 		Dims: module.Dims{
-			{ID: "running_containers", Name: "running"},
-			{ID: "paused_containers", Name: "paused"},
-			{ID: "exited_containers", Name: "exited"},
+			{ID: "containers_state_running", Name: "running"},
+			{ID: "containers_state_paused", Name: "paused"},
+			{ID: "containers_state_exited", Name: "exited"},
 		},
 	}
 	containersHealthyChart = module.Chart{
 		ID:       "healthy_containers",
-		Title:    "Number of healthy containers",
+		Title:    "Total number of Docker containers in various health states",
 		Units:    "containers",
 		Fam:      "containers",
-		Ctx:      "docker.healthy_containers",
+		Ctx:      "docker.containers_health_status",
 		Priority: prioContainersHealthy,
 		Dims: module.Dims{
-			{ID: "healthy_containers", Name: "healthy"},
-		},
-	}
-	containersUnhealthyChart = module.Chart{
-		ID:       "unhealthy_containers",
-		Title:    "Number of unhealthy containers",
-		Units:    "containers",
-		Fam:      "containers",
-		Ctx:      "docker.unhealthy_containers",
-		Priority: prioContainersUnhealthy,
-		Dims: module.Dims{
-			{ID: "unhealthy_containers", Name: "unhealthy"},
+			{ID: "containers_health_status_healthy", Name: "healthy"},
+			{ID: "containers_health_status_unhealthy", Name: "unhealthy"},
+			{ID: "containers_health_status_not_running_unhealthy", Name: "not_running_unhealthy"},
+			{ID: "containers_health_status_starting", Name: "starting"},
+			{ID: "containers_health_status_none", Name: "no_healthcheck"},
 		},
 	}
 )
@@ -63,7 +64,7 @@ var (
 var (
 	imagesCountChart = module.Chart{
 		ID:       "images_count",
-		Title:    "Number of images",
+		Title:    "Total number of Docker images in various states",
 		Units:    "images",
 		Fam:      "images",
 		Ctx:      "docker.images",
@@ -76,8 +77,8 @@ var (
 	}
 	imagesSizeChart = module.Chart{
 		ID:       "images_size",
-		Title:    "Images size",
-		Units:    "B",
+		Title:    "Total size of all Docker images",
+		Units:    "bytes",
 		Fam:      "images",
 		Ctx:      "docker.images_size",
 		Priority: prioImagesSize,
@@ -86,3 +87,88 @@ var (
 		},
 	}
 )
+
+var (
+	containerChartsTmpl = module.Charts{
+		containerStateChartTmpl.Copy(),
+		containerHealthStatusChartTmpl.Copy(),
+		containerWritableLayerSizeChartTmpl.Copy(),
+	}
+
+	containerStateChartTmpl = module.Chart{
+		ID:       "container_%s_state",
+		Title:    "Docker container state",
+		Units:    "state",
+		Fam:      "containers",
+		Ctx:      "docker.container_state",
+		Priority: prioContainerState,
+		Dims: module.Dims{
+			{ID: "container_%s_state_running", Name: "running"},
+			{ID: "container_%s_state_paused", Name: "paused"},
+			{ID: "container_%s_state_exited", Name: "exited"},
+			{ID: "container_%s_state_created", Name: "created"},
+			{ID: "container_%s_state_restarting", Name: "restarting"},
+			{ID: "container_%s_state_removing", Name: "removing"},
+			{ID: "container_%s_state_dead", Name: "dead"},
+		},
+	}
+	containerHealthStatusChartTmpl = module.Chart{
+		ID:       "container_%s_health_status",
+		Title:    "Docker container health status",
+		Units:    "status",
+		Fam:      "containers",
+		Ctx:      "docker.container_health_status",
+		Priority: prioContainerHealthStatus,
+		Dims: module.Dims{
+			{ID: "container_%s_health_status_healthy", Name: "healthy"},
+			{ID: "container_%s_health_status_unhealthy", Name: "unhealthy"},
+			{ID: "container_%s_health_status_not_running_unhealthy", Name: "not_running_unhealthy"},
+			{ID: "container_%s_health_status_starting", Name: "starting"},
+			{ID: "container_%s_health_status_none", Name: "no_healthcheck"},
+		},
+	}
+	containerWritableLayerSizeChartTmpl = module.Chart{
+		ID:       "container_%s_writable_layer_size",
+		Title:    "Docker container writable layer size",
+		Units:    "bytes",
+		Fam:      "containers",
+		Ctx:      "docker.container_writeable_layer_size",
+		Priority: prioContainerWritableLayerSize,
+		Dims: module.Dims{
+			{ID: "container_%s_size_rw", Name: "writable_layer"},
+		},
+	}
+)
+
+func (d *Docker) addContainerCharts(name, image string) {
+	charts := containerChartsTmpl.Copy()
+	if !d.CollectContainerSize {
+		_ = charts.Remove(containerWritableLayerSizeChartTmpl.ID)
+	}
+
+	for _, chart := range *charts {
+		chart.ID = fmt.Sprintf(chart.ID, name)
+		chart.Labels = []module.Label{
+			{Key: "container_name", Value: name},
+			{Key: "image", Value: image},
+		}
+		for _, dim := range chart.Dims {
+			dim.ID = fmt.Sprintf(dim.ID, name)
+		}
+	}
+
+	if err := d.Charts().Add(*charts...); err != nil {
+		d.Warning(err)
+	}
+}
+
+func (d *Docker) removeContainerCharts(name string) {
+	px := fmt.Sprintf("container_%s", name)
+
+	for _, chart := range *d.Charts() {
+		if strings.HasPrefix(chart.ID, px) {
+			chart.MarkRemove()
+			chart.MarkNotCreated()
+		}
+	}
+}

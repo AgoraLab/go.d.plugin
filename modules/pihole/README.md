@@ -1,19 +1,22 @@
 <!--
 title: "Pi-hole monitoring with Netdata"
 description: "Monitor the health and performance of Pi-hole instances with zero configuration, per-second metric granularity, and interactive visualizations."
-custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/pihole/README.md
+custom_edit_url: "https://github.com/netdata/go.d.plugin/edit/master/modules/pihole/README.md"
 sidebar_label: "Pi-hole"
+learn_status: "Published"
+learn_topic_type: "References"
+learn_rel_path: "Integrations/Monitor/Apps"
 -->
 
-# Pi-hole monitoring with Netdata
+# Pi-hole collector
 
 [`Pi-hole`](https://pi-hole.net) is a Linux network-level advertisement and Internet tracker blocking application which
 acts as a DNS sinkhole, intended for use on a private network.
 
 This module will monitor one or more `Pi-hole` instances using [PHP API](https://github.com/pi-hole/AdminLTE).
 
-The API exposed data time frame is `for the last 24 hr`. All collected values are for that time frame, not for the
-module collection interval.
+The data provided by the API is for the last 24 hours. All collected values refer to this time period and not to the
+module's collection interval.
 
 ## Metrics
 
@@ -27,17 +30,15 @@ All metrics have "pihole." prefix.
 | unique_clients                    | global |              unique              |  clients   |
 | domains_on_blocklist              | global |            blocklist             |  domains   |
 | blocklist_last_update             | global |               ago                |  seconds   |
-| unwanted_domains_blocking_status  | global |             enabled              |  boolean   |
+| unwanted_domains_blocking_status  | global |        enabled, disabled         |   status   |
 | dns_queries_types                 | global | a, aaaa, any, ptr, soa, srv, txt | percentage |
-| dns_queries_forwarded_destination | global |         cache, blocklist         | percentage |
-| top_clients                       | global |  <i>a dimension per client</i>   |  requests  |
-| top_permitted_domains             | global |  <i>a dimension per domain</i>   |    hits    |
-| top_blocked_domains               | global |  <i>a dimension per domain</i>   |    hits    |
+| dns_queries_forwarded_destination | global |      cached, blocked, other      | percentage |
 
 ## Configuration
 
 Edit the `go.d/pihole.conf` configuration file using `edit-config` from the
-Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
+Netdata [config directory](https://github.com/netdata/netdata/blob/master/docs/configure/nodes.md), which is typically
+at `/etc/netdata`.
 
 ```bash
 cd /etc/netdata # Replace this path with your Netdata config directory

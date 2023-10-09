@@ -1,11 +1,14 @@
 <!--
 title: "Docker Engine monitoring with Netdata"
 description: "Monitor the health and performance of the Docker Engine runtime with zero configuration, per-second metric granularity, and interactive visualizations."
-custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/docker_engine/README.md
+custom_edit_url: "https://github.com/netdata/go.d.plugin/edit/master/modules/docker_engine/README.md"
 sidebar_label: "Docker Engine"
+learn_status: "Published"
+learn_topic_type: "References"
+learn_rel_path: "Integrations/Monitor/Virtualized environments/Containers"
 -->
 
-# Docker Engine monitoring with Netdata
+# Docker Engine collector
 
 [`Docker Engine`](https://docs.docker.com/engine/) is the industry’s de facto container runtime that runs on various
 Linux (CentOS, Debian, Fedora, Oracle Linux, RHEL, SUSE, and Ubuntu) and Windows Server operating systems.
@@ -34,7 +37,7 @@ All metrics have "docker_engine." prefix.
 ## Configuration
 
 Edit the `go.d/docker_engine.conf` configuration file using `edit-config` from the
-Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
+Netdata [config directory](https://github.com/netdata/netdata/blob/master/docs/configure/nodes.md), which is typically at `/etc/netdata`.
 
 ```bash
 cd /etc/netdata # Replace this path with your Netdata config directory

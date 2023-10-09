@@ -108,8 +108,6 @@ var baseCharts = module.Charts{
 	bgWriterHaltsRateChart.Copy(),
 	buffersBackendFsyncRateChart.Copy(),
 	walIORateChart.Copy(),
-	walFilesCountChart.Copy(),
-	walArchivingFilesCountChart.Copy(),
 	autovacuumWorkersCountChart.Copy(),
 	txidExhaustionTowardsAutovacuumPercChart.Copy(),
 	txidExhaustionPercChart.Copy(),
@@ -119,6 +117,19 @@ var baseCharts = module.Charts{
 	catalogRelationsSizeChart.Copy(),
 	serverUptimeChart.Copy(),
 	databasesCountChart.Copy(),
+}
+
+var walFilesCharts = module.Charts{
+	walFilesCountChart.Copy(),
+	walArchivingFilesCountChart.Copy(),
+}
+
+func (p *Postgres) addWALFilesCharts() {
+	charts := walFilesCharts.Copy()
+
+	if err := p.Charts().Add(*charts...); err != nil {
+		p.Warning(err)
+	}
 }
 
 var (
@@ -1148,6 +1159,9 @@ var (
 		Dims: module.Dims{
 			{ID: "table_%s_db_%s_schema_%s_bloat_size_perc", Name: "bloat"},
 		},
+		Vars: module.Vars{
+			{ID: "table_%s_db_%s_schema_%s_total_size", Name: "table_size"},
+		},
 	}
 	tableBloatSizeChartTmpl = module.Chart{
 		ID:       "table_%s_db_%s_schema_%s_bloat_size",
@@ -1184,9 +1198,13 @@ func newTableChart(chart *module.Chart, tbl *tableMetrics) *module.Chart {
 		{Key: "database", Value: tbl.db},
 		{Key: "schema", Value: tbl.schema},
 		{Key: "table", Value: tbl.name},
+		{Key: "parent_table", Value: tbl.parentName},
 	}
 	for _, d := range chart.Dims {
 		d.ID = fmt.Sprintf(d.ID, tbl.name, tbl.db, tbl.schema)
+	}
+	for _, v := range chart.Vars {
+		v.ID = fmt.Sprintf(v.ID, tbl.name, tbl.db, tbl.schema)
 	}
 	return chart
 }
@@ -1312,6 +1330,9 @@ var (
 		Dims: module.Dims{
 			{ID: "index_%s_table_%s_db_%s_schema_%s_bloat_size_perc", Name: "bloat"},
 		},
+		Vars: module.Vars{
+			{ID: "index_%s_table_%s_db_%s_schema_%s_size", Name: "index_size"},
+		},
 	}
 	indexBloatSizeChartTmpl = module.Chart{
 		ID:       "index_%s_table_%s_db_%s_schema_%s_bloat_size",
@@ -1352,10 +1373,14 @@ func (p *Postgres) addNewIndexCharts(idx *indexMetrics) {
 			{Key: "database", Value: idx.db},
 			{Key: "schema", Value: idx.schema},
 			{Key: "table", Value: idx.table},
+			{Key: "parent_table", Value: idx.parentTable},
 			{Key: "index", Value: idx.name},
 		}
 		for _, d := range chart.Dims {
 			d.ID = fmt.Sprintf(d.ID, idx.name, idx.table, idx.db, idx.schema)
+		}
+		for _, v := range chart.Vars {
+			v.ID = fmt.Sprintf(v.ID, idx.name, idx.table, idx.db, idx.schema)
 		}
 	}
 

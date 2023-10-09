@@ -1,13 +1,16 @@
 <!--
 title: "Web server log (Apache, NGINX) monitoring with Netdata"
 description: "Monitor the health and performance of Apache or Nginx logs with zero configuration, per-second metric granularity, and interactive visualizations."
-custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/weblog/README.md
-sidebar_label: "Web server logs (Apache, NGINX)"
+custom_edit_url: "https://github.com/netdata/go.d.plugin/edit/master/modules/weblog/README.md"
+sidebar_label: "Web server logs (Apache, NGINX, Microsoft IIS)"
+learn_status: "Published"
+learn_topic_type: "References"
+learn_rel_path: "Integrations/Monitor/Quantify logs to metrics"
 -->
 
-# Web log (Apache, NGINX) monitoring with Netdata
+# Web server log (Apache, NGINX, IIS) collector
 
-This module parses [`Apache`](https://httpd.apache.org/) and [`NGINX`](https://nginx.org/en/) web servers logs.
+This module parses [`Apache`](https://httpd.apache.org/), [`NGINX`](https://nginx.org/en/) and [Microsoft IIS](https://www.iis.net/) web servers logs.
 
 ## Metrics
 
@@ -296,7 +299,7 @@ info from them.
 ## Configuration
 
 Edit the `go.d/web_log.conf` configuration file using `edit-config` from the
-Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
+Netdata [config directory](https://github.com/netdata/netdata/blob/master/docs/configure/nodes.md), which is typically at `/etc/netdata`.
 
 ```bash
 cd /etc/netdata # Replace this path with your Netdata config directory
@@ -316,6 +319,12 @@ jobs:
     log_type: csv
     csv_config:
       format: '- - %h - - %t \"%r\" %>s %b'
+
+  - name: iis
+    path: /mnt/c/inetpub/logs/LogFiles/W3SVC1/u_ex*.log
+    log_type: csv
+    csv_config:
+      format: '- - $host $request_method $request_uri - $server_port - $remote_addr - - $status - - $request_time'
 ```
 
 For all available options, please see the

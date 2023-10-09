@@ -1,11 +1,14 @@
 <!--
 title: "ISC DHCPd monitoring with Netdata"
 description: "Monitor the health and performance of ISC DHCP servers with zero configuration, per-second metric granularity, and interactive visualizations."
-custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/isc_dhcpd/README.md
+custom_edit_url: "https://github.com/netdata/go.d.plugin/edit/master/modules/isc_dhcpd/README.md"
 sidebar_label: "ISC DHCPd"
+learn_status: "Published"
+learn_topic_type: "References"
+learn_rel_path: "Integrations/Monitor/Networking"
 -->
 
-# ISC DHCPd monitoring with Netdata
+# ISC DHCPd collector
 
 [`ISC DHCP`](https://www.isc.org/dhcp/) is a DHCP server that supports both IPv4 and IPv6, and is suitable for use in
 high-volume and high-reliability applications.
@@ -30,7 +33,7 @@ All metrics have "isc_dhcps." prefix.
 ## Configuration
 
 Edit the `go.d/isc_dhcpd.conf` configuration file using `edit-config` from the
-Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
+Netdata [config directory](https://github.com/netdata/netdata/blob/master/docs/configure/nodes.md), which is typically at `/etc/netdata`.
 
 ```bash
 cd /etc/netdata # Replace this path with your Netdata config directory

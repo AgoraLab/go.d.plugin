@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package postgres
 
 import "database/sql"
@@ -31,11 +33,11 @@ func (p *Postgres) doDBQueryBloat(db *sql.DB) error {
 		case "tablename":
 			table = value
 		case "wastedbytes":
-			tableWasted = parseInt(value)
+			tableWasted = parseFloat(value)
 		case "iname":
 			iname = value
 		case "wastedibytes":
-			idxWasted = parseInt(value)
+			idxWasted = parseFloat(value)
 		}
 		if !rowEnd {
 			return

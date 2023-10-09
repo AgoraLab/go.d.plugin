@@ -1,11 +1,14 @@
 <!--
 title: "Kube-proxy monitoring with Netdata"
 description: "Monitor the health and performance of Kube-proxy instances with zero configuration, per-second metric granularity, and interactive visualizations."
-custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/k8s_kubeproxy/README.md
+custom_edit_url: "https://github.com/netdata/go.d.plugin/edit/master/modules/k8s_kubeproxy/README.md"
 sidebar_label: "Kube-proxy"
+learn_status: "Published"
+learn_topic_type: "References"
+learn_rel_path: "Integrations/Monitor/Container orchestrators/Kubernetes"
 -->
 
-# Kube-proxy monitoring with Netdata
+# Kube-proxy collector
 
 [`Kube-proxy`](https://kubernetes.io/docs/concepts/overview/components/#kube-proxy) is a network proxy that runs on each
 node in your cluster, implementing part of the Kubernetes Service.
@@ -28,7 +31,7 @@ All metrics have "k8s_kubeproxy." prefix.
 ## Configuration
 
 Edit the `go.d/k8s_kubeproxy.conf` configuration file using `edit-config` from the
-Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
+Netdata [config directory](https://github.com/netdata/netdata/blob/master/docs/configure/nodes.md), which is typically at `/etc/netdata`.
 
 ```bash
 cd /etc/netdata # Replace this path with your Netdata config directory

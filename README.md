@@ -2,6 +2,11 @@
 title: go.d.plugin
 description: "go.d.plugin is an external plugin for Netdata, responsible for running individual data collectors written in Go."
 custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/README.md
+sidebar_label: "go.d.plugin"
+learn_status: "Published"
+learn_topic_type: "Tasks"
+learn_rel_path: "Developers/External plugins/go.d.plugin"
+sidebar_position: 1
 -->
 
 # go.d.plugin
@@ -28,6 +33,18 @@ and questions.
 
 Go.d.plugin is shipped with Netdata.
 
+### Required Linux capabilities
+
+All capabilities are set automatically during Netdata installation using
+the [official installation method](https://github.com/netdata/netdata/blob/master/packaging/installer/README.md#install-on-linux-with-one-line-installer).
+No further action required. If you have used a different installation method and need to set the capabilities manually,
+see the appropriate collector readme.
+
+| Capability    |                                               Required by                                                |
+|:--------------|:--------------------------------------------------------------------------------------------------------:|
+| CAP_NET_RAW   |      [Ping](https://github.com/netdata/go.d.plugin/blob/master/modules/ping/README.md#requirements)      |
+| CAP_NET_ADMIN | [Wireguard](https://github.com/netdata/go.d.plugin/blob/master/modules/wireguard/README.md#requirements) |
+
 ## Available modules
 
 | Name                                                                                                |           Monitors            |
@@ -35,6 +52,7 @@ Go.d.plugin is shipped with Netdata.
 | [activemq](https://github.com/netdata/go.d.plugin/tree/master/modules/activemq)                     |           ActiveMQ            |
 | [apache](https://github.com/netdata/go.d.plugin/tree/master/modules/apache)                         |            Apache             |
 | [bind](https://github.com/netdata/go.d.plugin/tree/master/modules/bind)                             |           ISC Bind            |
+| [cassandra](https://github.com/netdata/go.d.plugin/tree/master/modules/cassandra)                   |           Cassandra           |
 | [chrony](https://github.com/netdata/go.d.plugin/tree/master/modules/chrony)                         |            Chrony             |
 | [cockroachdb](https://github.com/netdata/go.d.plugin/tree/master/modules/cockroachdb)               |          CockroachDB          |
 | [consul](https://github.com/netdata/go.d.plugin/tree/master/modules/consul)                         |            Consul             |
@@ -48,8 +66,9 @@ Go.d.plugin is shipped with Netdata.
 | [docker](https://github.com/netdata/go.d.plugin/tree/master/modules/docker)                         |         Docker Engine         |
 | [docker_engine](https://github.com/netdata/go.d.plugin/tree/master/modules/docker_engine)           |         Docker Engine         |
 | [dockerhub](https://github.com/netdata/go.d.plugin/tree/master/modules/dockerhub)                   |          Docker Hub           |
-| [elasticsearch](https://github.com/netdata/go.d.plugin/tree/master/modules/elasticsearch)           |         Elasticsearch         |
+| [elasticsearch](https://github.com/netdata/go.d.plugin/tree/master/modules/elasticsearch)           |   Elasticsearch/OpenSearch    |
 | [energid](https://github.com/netdata/go.d.plugin/tree/master/modules/energid)                       |          Energi Core          |
+| [envoy](https://github.com/netdata/go.d.plugin/tree/master/modules/envoy)                           |             Envoy             |
 | [example](https://github.com/netdata/go.d.plugin/tree/master/modules/example)                       |               -               |
 | [filecheck](https://github.com/netdata/go.d.plugin/tree/master/modules/filecheck)                   |     Files and Directories     |
 | [fluentd](https://github.com/netdata/go.d.plugin/tree/master/modules/fluentd)                       |            Fluentd            |
@@ -62,13 +81,15 @@ Go.d.plugin is shipped with Netdata.
 | [k8s_kubeproxy](https://github.com/netdata/go.d.plugin/tree/master/modules/k8s_kubeproxy)           |          Kube-proxy           |
 | [k8s_state](https://github.com/netdata/go.d.plugin/tree/master/modules/k8s_state)                   |   Kubernetes cluster state    |
 | [lighttpd](https://github.com/netdata/go.d.plugin/tree/master/modules/lighttpd)                     |           Lighttpd            |
-| [lighttpd2](https://github.com/netdata/go.d.plugin/tree/master/modules/lighttpd2)                   |           Lighttpd2           |
 | [logind](https://github.com/netdata/go.d.plugin/tree/master/modules/logind)                         |        systemd-logind         |
 | [logstash](https://github.com/netdata/go.d.plugin/tree/master/modules/logstash)                     |           Logstash            |
 | [mongoDB](https://github.com/netdata/go.d.plugin/tree/master/modules/mongodb)                       |            MongoDB            |
 | [mysql](https://github.com/netdata/go.d.plugin/tree/master/modules/mysql)                           |             MySQL             |
 | [nginx](https://github.com/netdata/go.d.plugin/tree/master/modules/nginx)                           |             NGINX             |
+| [nginxplus](https://github.com/netdata/go.d.plugin/tree/master/modules/nginxplus)                   |          NGINX Plus           |
 | [nginxvts](https://github.com/netdata/go.d.plugin/tree/master/modules/nginxvts)                     |           NGINX VTS           |
+| [ntpd](https://github.com/netdata/go.d.plugin/tree/master/modules/ntpd)                             |          NTP daemon           |
+| [nvme](https://github.com/netdata/go.d.plugin/tree/master/modules/nvme)                             |         NVMe devices          |
 | [openvpn](https://github.com/netdata/go.d.plugin/tree/master/modules/openvpn)                       |            OpenVPN            |
 | [openvpn_status_log](https://github.com/netdata/go.d.plugin/tree/master/modules/openvpn_status_log) |            OpenVPN            |
 | [pgbouncer](https://github.com/netdata/go.d.plugin/tree/master/modules/pgbouncer)                   |           PgBouncer           |
@@ -76,6 +97,7 @@ Go.d.plugin is shipped with Netdata.
 | [phpfpm](https://github.com/netdata/go.d.plugin/tree/master/modules/phpfpm)                         |            PHP-FPM            |
 | [pihole](https://github.com/netdata/go.d.plugin/tree/master/modules/pihole)                         |            Pi-hole            |
 | [pika](https://github.com/netdata/go.d.plugin/tree/master/modules/pika)                             |             Pika              |
+| [ping](https://github.com/netdata/go.d.plugin/tree/master/modules/ping)                             |       Any network host        |
 | [prometheus](https://github.com/netdata/go.d.plugin/tree/master/modules/prometheus)                 |    Any Prometheus Endpoint    |
 | [portcheck](https://github.com/netdata/go.d.plugin/tree/master/modules/portcheck)                   |       Any TCP Endpoint        |
 | [postgres](https://github.com/netdata/go.d.plugin/tree/master/modules/postgres)                     |          PostgreSQL           |
@@ -101,14 +123,15 @@ Go.d.plugin is shipped with Netdata.
 | [web_log](https://github.com/netdata/go.d.plugin/tree/master/modules/weblog)                        |         Apache/NGINX          |
 | [wireguard](https://github.com/netdata/go.d.plugin/tree/master/modules/wireguard)                   |           WireGuard           |
 | [whoisquery](https://github.com/netdata/go.d.plugin/tree/master/modules/whoisquery)                 |         Domain Expiry         |
-| [wmi](https://github.com/netdata/go.d.plugin/tree/master/modules/wmi)                               |       Windows Machines        |
+| [windows](https://github.com/netdata/go.d.plugin/tree/master/modules/windows)                       |            Windows            |
 | [x509check](https://github.com/netdata/go.d.plugin/tree/master/modules/x509check)                   |     Digital Certificates      |
 | [zookeeper](https://github.com/netdata/go.d.plugin/tree/master/modules/zookeeper)                   |           ZooKeeper           |
 
 ## Configuration
 
 Edit the `go.d.conf` configuration file using `edit-config` from the
-Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
+Netdata [config directory](https://github.com/netdata/netdata/blob/master/docs/configure/nodes.md), which is typically
+at `/etc/netdata`.
 
 ```bash
 cd /etc/netdata # Replace this path with your Netdata config directory
@@ -120,36 +143,37 @@ Configurations are written in [YAML](http://yaml.org/).
 - [plugin configuration](https://github.com/netdata/go.d.plugin/blob/master/config/go.d.conf)
 - [specific module configuration](https://github.com/netdata/go.d.plugin/tree/master/config/go.d)
 
+### Enable a collector
+
+To enable a collector you should edit `go.d.conf` to uncomment the collector in question and change it from `no`
+to `yes`.
+
+For example, to enable the `example` plugin you would need to update `go.d.conf` from something like:
+
+```yaml
+modules:
+#  example: no 
+```
+
+to
+
+```yaml
+modules:
+  example: yes
+```
+
+Then [restart netdata](https://github.com/netdata/netdata/blob/master/docs/configure/start-stop-restart.md) for the
+change to take effect.
+
 ## Contributing
 
 If you want to contribute to this project, we are humbled. Please take a look at
-our [contributing guidelines](https://learn.netdata.cloud/contribute/handbook) and don't hesitate to contact us in our
-forums. We have a whole [category](https://community.netdata.cloud/c/agent-development/9) just for this purpose!
+our [contributing guidelines](https://github.com/netdata/.github/blob/main/CONTRIBUTING.md) and don't hesitate to
+contact us in our forums.
 
 ### How to develop a collector
 
-- Take a look at our [contributing guidelines](https://learn.netdata.cloud/contribute/handbook).
-- Read
-  the [How to develop a collector in Go](https://github.com/netdata/go.d.plugin/tree/master/docs/how-to-write-a-module.md)
-  guide.
-- [Fork](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) this repository to your personal
-  GitHub account.
-- [Clone](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository#:~:text=to%20GitHub%20Desktop-,On%20GitHub%2C%20navigate%20to%20the%20main%20page%20of%20the%20repository,Desktop%20to%20complete%20the%20clone.)
-  locally the **forked** repository (e.g `git clone https://github.com/odyslam/go.d.plugin`).
-- Using a terminal, `cd` into the directory (e.g `cd go.d.plugin`)
-- Add your module to the [modules](https://github.com/netdata/go.d.plugin/tree/master/modules) directory.
-- Import the module in the [init.go](https://github.com/netdata/go.d.plugin/blob/master/cmd/godplugin/init.go).
-- To build it, run `make` from the plugin root dir. This will create a new `go.d.plugin` binary that includes your newly
-  developed collector. It will be placed into the `bin` directory (e.g `go.d.plugin/bin`)
-- Run it in the debug mode `bin/godplugin -d -m <MODULE_NAME>`. This will output the `STDOUT` of the collector, the same
-  output that is sent to the Netdata Agent and is transformed into charts. You can read more about this collector API in
-  our [documentation](https://learn.netdata.cloud/docs/agent/collectors/plugins.d#external-plugins-api).
-- If you want to test the collector with the actual Netdata Agent, you need to replace the `go.d.plugin` binary that
-  exists in the Netdata Agent installation directory with the one you just compiled. Once
-  you [restart](https://learn.netdata.cloud/docs/configure/start-stop-restart) the Netdata Agent, it will detect and run
-  it, creating all the charts. It is advised not to remove the default `go.d.plugin` binary, but simply rename it
-  to `go.d.plugin.old` so that the Agent doesn't run it, but you can easily rename it back once you are done.
-- Run `make clean` when you are done with testing.
+Read [how to write a Netdata collector in Go](https://github.com/netdata/go.d.plugin/blob/master/docs/how-to-write-a-module.md).
 
 ## Troubleshooting
 
@@ -188,4 +212,4 @@ modules.
 This repository follows the Netdata Code of Conduct and is part of the Netdata Community.
 
 - [Community Forums](https://community.netdata.cloud)
-- [Netdata Code of Conduct](https://learn.netdata.cloud/contribute/code-of-conduct)
+- [Netdata Code of Conduct](https://github.com/netdata/.github/blob/main/CODE_OF_CONDUCT.md)

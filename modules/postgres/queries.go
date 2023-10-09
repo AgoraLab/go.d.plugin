@@ -282,23 +282,11 @@ SELECT application_name,
                    END,
                sent_location)   AS sent_delta,
        pg_xlog_location_diff(
-               CASE pg_is_in_recovery()
-                   WHEN true THEN pg_last_xlog_receive_location()
-                   ELSE pg_current_xlog_location()
-                   END,
-               write_location)  AS write_delta,
+               sent_location, write_location)  AS write_delta,
        pg_xlog_location_diff(
-               CASE pg_is_in_recovery()
-                   WHEN true THEN pg_last_xlog_receive_location()
-                   ELSE pg_current_xlog_location()
-                   END,
-               flush_location)  AS flush_delta,
+               write_location, flush_location)  AS flush_delta,
        pg_xlog_location_diff(
-               CASE pg_is_in_recovery()
-                   WHEN true THEN pg_last_xlog_receive_location()
-                   ELSE pg_current_xlog_location()
-                   END,
-               replay_location) AS replay_delta
+               flush_location, replay_location) AS replay_delta
 FROM pg_stat_replication psr
 WHERE application_name IS NOT NULL;
 `
@@ -312,23 +300,11 @@ SELECT application_name,
                    END,
                sent_lsn)   AS sent_delta,
        pg_wal_lsn_diff(
-               CASE pg_is_in_recovery()
-                   WHEN true THEN pg_last_wal_receive_lsn()
-                   ELSE pg_current_wal_lsn()
-                   END,
-               write_lsn)  AS write_delta,
+               sent_lsn, write_lsn)  AS write_delta,
        pg_wal_lsn_diff(
-               CASE pg_is_in_recovery()
-                   WHEN true THEN pg_last_wal_receive_lsn()
-                   ELSE pg_current_wal_lsn()
-                   END,
-               flush_lsn)  AS flush_delta,
+               write_lsn, flush_lsn)  AS flush_delta,
        pg_wal_lsn_diff(
-               CASE pg_is_in_recovery()
-                   WHEN true THEN pg_last_wal_receive_lsn()
-                   ELSE pg_current_wal_lsn()
-                   END,
-               replay_lsn) AS replay_delta
+               flush_lsn, replay_lsn) AS replay_delta
 FROM pg_stat_replication
 WHERE application_name IS NOT NULL;
 `
@@ -555,6 +531,7 @@ func queryStatUserTables() string {
 SELECT current_database()                                   as datname,
        schemaname,
        relname,
+       inh.parent_relname,
        seq_scan,
        seq_tup_read,
        idx_scan,
@@ -573,8 +550,18 @@ SELECT current_database()                                   as datname,
        autovacuum_count,
        analyze_count,
        autoanalyze_count,
-       pg_total_relation_size(schemaname || '.' || relname) as total_relation_size
-FROM pg_stat_user_tables;
+       pg_total_relation_size(quote_ident(schemaname) || '.' || quote_ident(relname)) as total_relation_size
+FROM pg_stat_user_tables
+LEFT JOIN(
+    SELECT 
+      c.oid AS child_oid, 
+      p.relname AS parent_relname 
+    FROM 
+      pg_inherits 
+      JOIN pg_class AS c ON (inhrelid = c.oid) 
+      JOIN pg_class AS p ON (inhparent = p.oid)
+  ) AS inh ON inh.child_oid = relid 
+WHERE has_schema_privilege(schemaname, 'USAGE');
 `
 }
 
@@ -583,6 +570,7 @@ func queryStatIOUserTables() string {
 SELECT current_database()                                       AS datname,
        schemaname,
        relname,
+       inh.parent_relname,
        heap_blks_read * current_setting('block_size')::numeric  AS heap_blks_read_bytes,
        heap_blks_hit * current_setting('block_size')::numeric   AS heap_blks_hit_bytes,
        idx_blks_read * current_setting('block_size')::numeric   AS idx_blks_read_bytes,
@@ -591,7 +579,17 @@ SELECT current_database()                                       AS datname,
        toast_blks_hit * current_setting('block_size')::numeric  AS toast_blks_hit_bytes,
        tidx_blks_read * current_setting('block_size')::numeric  AS tidx_blks_read_bytes,
        tidx_blks_hit * current_setting('block_size')::numeric   AS tidx_blks_hit_bytes
-FROM pg_statio_user_tables;
+FROM pg_statio_user_tables
+LEFT JOIN(
+    SELECT 
+      c.oid AS child_oid, 
+      p.relname AS parent_relname 
+    FROM 
+      pg_inherits 
+      JOIN pg_class AS c ON (inhrelid = c.oid) 
+      JOIN pg_class AS p ON (inhparent = p.oid)
+  ) AS inh ON inh.child_oid = relid
+WHERE has_schema_privilege(schemaname, 'USAGE');
 `
 }
 
@@ -605,11 +603,22 @@ SELECT current_database()                                as datname,
        schemaname,
        relname,
        indexrelname,
+       inh.parent_relname,
        idx_scan,
        idx_tup_read,
        idx_tup_fetch,
-       pg_relation_size(quote_ident(indexrelname)::text) as size
-FROM pg_stat_user_indexes;
+       pg_relation_size(quote_ident(schemaname) || '.' || quote_ident(indexrelname)::text) as size
+FROM pg_stat_user_indexes
+LEFT JOIN(
+    SELECT 
+      c.oid AS child_oid, 
+      p.relname AS parent_relname 
+    FROM 
+      pg_inherits 
+      JOIN pg_class AS c ON (inhrelid = c.oid) 
+      JOIN pg_class AS p ON (inhparent = p.oid)
+  ) AS inh ON inh.child_oid = relid
+WHERE has_schema_privilege(schemaname, 'USAGE');
 `
 }
 

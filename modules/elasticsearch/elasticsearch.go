@@ -4,6 +4,7 @@ package elasticsearch
 
 import (
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/netdata/go.d.plugin/pkg/web"
@@ -31,38 +32,45 @@ func New() *Elasticsearch {
 					Timeout: web.Duration{Duration: time.Second * 5},
 				},
 			},
+			ClusterMode: false,
+
 			DoNodeStats:     true,
 			DoClusterStats:  true,
 			DoClusterHealth: true,
 			DoIndicesStats:  false,
 		},
-		collectedIndices: make(map[string]bool),
+
+		charts:                     &module.Charts{},
+		addClusterHealthChartsOnce: &sync.Once{},
+		addClusterStatsChartsOnce:  &sync.Once{},
+		nodes:                      make(map[string]bool),
+		indices:                    make(map[string]bool),
 	}
 }
 
-type (
-	Config struct {
-		web.HTTP        `yaml:",inline"`
-		DoNodeStats     bool `yaml:"collect_node_stats"`
-		DoClusterHealth bool `yaml:"collect_cluster_health"`
-		DoClusterStats  bool `yaml:"collect_cluster_stats"`
-		DoIndicesStats  bool `yaml:"collect_indices_stats"`
-	}
-	Elasticsearch struct {
-		module.Base
-		Config `yaml:",inline"`
+type Config struct {
+	web.HTTP        `yaml:",inline"`
+	ClusterMode     bool `yaml:"cluster_mode"`
+	DoNodeStats     bool `yaml:"collect_node_stats"`
+	DoClusterHealth bool `yaml:"collect_cluster_health"`
+	DoClusterStats  bool `yaml:"collect_cluster_stats"`
+	DoIndicesStats  bool `yaml:"collect_indices_stats"`
+}
 
-		httpClient       *http.Client
-		charts           *module.Charts
-		collectedIndices map[string]bool
-	}
-)
+type Elasticsearch struct {
+	module.Base
+	Config `yaml:",inline"`
 
-func (es *Elasticsearch) Cleanup() {
-	if es.httpClient == nil {
-		return
-	}
-	es.httpClient.CloseIdleConnections()
+	httpClient *http.Client
+	charts     *module.Charts
+
+	clusterName string
+
+	addClusterHealthChartsOnce *sync.Once
+	addClusterStatsChartsOnce  *sync.Once
+
+	nodes   map[string]bool
+	indices map[string]bool
 }
 
 func (es *Elasticsearch) Init() bool {
@@ -79,25 +87,14 @@ func (es *Elasticsearch) Init() bool {
 	}
 	es.httpClient = httpClient
 
-	charts, err := es.initCharts()
-	if err != nil {
-		es.Errorf("init charts: %v", err)
-		return false
-	}
-	es.charts = charts
-
 	return true
 }
 
 func (es *Elasticsearch) Check() bool {
-	if err := es.pingElasticsearch(); err != nil {
-		es.Error(err)
-		return false
-	}
 	return len(es.Collect()) > 0
 }
 
-func (es *Elasticsearch) Charts() *Charts {
+func (es *Elasticsearch) Charts() *module.Charts {
 	return es.charts
 }
 
@@ -111,4 +108,10 @@ func (es *Elasticsearch) Collect() map[string]int64 {
 		return nil
 	}
 	return mx
+}
+
+func (es *Elasticsearch) Cleanup() {
+	if es.httpClient != nil {
+		es.httpClient.CloseIdleConnections()
+	}
 }

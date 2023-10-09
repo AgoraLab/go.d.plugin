@@ -22,19 +22,23 @@ func init() {
 func New() *Docker {
 	return &Docker{
 		Config: Config{
-			Address: docker.DefaultDockerHost,
-			Timeout: web.Duration{Duration: time.Second * 5},
+			Address:              docker.DefaultDockerHost,
+			Timeout:              web.Duration{Duration: time.Second * 5},
+			CollectContainerSize: false,
 		},
-		charts: charts.Copy(),
+
+		charts: summaryCharts.Copy(),
 		newClient: func(cfg Config) (dockerClient, error) {
 			return docker.NewClientWithOpts(docker.WithHost(cfg.Address))
 		},
+		containers: make(map[string]bool),
 	}
 }
 
 type Config struct {
-	Timeout web.Duration `yaml:"timeout"`
-	Address string       `yaml:"address"`
+	Timeout              web.Duration `yaml:"timeout"`
+	Address              string       `yaml:"address"`
+	CollectContainerSize bool         `yaml:"collect_container_size"`
 }
 
 type (
@@ -44,10 +48,14 @@ type (
 
 		charts *module.Charts
 
-		newClient func(Config) (dockerClient, error)
-		client    dockerClient
+		newClient     func(Config) (dockerClient, error)
+		client        dockerClient
+		verNegotiated bool
+
+		containers map[string]bool
 	}
 	dockerClient interface {
+		NegotiateAPIVersion(context.Context)
 		Info(context.Context) (types.Info, error)
 		ImageList(context.Context, types.ImageListOptions) ([]types.ImageSummary, error)
 		ContainerList(context.Context, types.ContainerListOptions) ([]types.Container, error)

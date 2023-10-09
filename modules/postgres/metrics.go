@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package postgres
 
 import "github.com/netdata/go.d.plugin/pkg/metrics"
@@ -152,9 +154,10 @@ type replSlotMetrics struct {
 }
 
 type tableMetrics struct {
-	name   string
-	db     string
-	schema string
+	name       string
+	parentName string
+	db         string
+	schema     string
 
 	updated                  bool
 	hasCharts                bool
@@ -205,10 +208,11 @@ type tableMetrics struct {
 }
 
 type indexMetrics struct {
-	name   string
-	db     string
-	schema string
-	table  string
+	name        string
+	db          string
+	schema      string
+	table       string
+	parentTable string
 
 	updated   bool
 	hasCharts bool

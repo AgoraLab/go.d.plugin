@@ -1,17 +1,24 @@
 <!--
 title: "HTTP endpoint monitoring with Netdata"
 description: "Monitor the health and performance of any HTTP endpoint with zero configuration, per-second metric granularity, and interactive visualizations."
-custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/httpcheck/README.md
+custom_edit_url: "https://github.com/netdata/go.d.plugin/edit/master/modules/httpcheck/README.md"
 sidebar_label: "HTTP endpoints"
+learn_status: "Published"
+learn_topic_type: "References"
+learn_rel_path: "Integrations/Monitor/Remotes"
 -->
 
-# HTTP endpoint monitoring with Netdata
+# HTTP endpoint collector
 
 This module monitors one or more http servers availability and response time.
 
 ## Metrics
 
 All metrics have "httpcheck." prefix.
+
+Labels per scope:
+
+- global: url.
 
 | Metric          | Scope  |                        Dimensions                        |   Units    |
 |-----------------|:------:|:--------------------------------------------------------:|:----------:|
@@ -32,7 +39,7 @@ All metrics have "httpcheck." prefix.
 ## Configuration
 
 Edit the `go.d/httpcheck.conf` configuration file using `edit-config` from the
-Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
+Netdata [config directory](https://github.com/netdata/netdata/blob/master/docs/configure/nodes.md), which is typically at `/etc/netdata`.
 
 ```bash
 cd /etc/netdata # Replace this path with your Netdata config directory
@@ -53,6 +60,13 @@ jobs:
       - 201
       - 202
     response_match: <title>My cool website!<\/title>
+
+  - name: cool_website3
+    url: http://cool.website3:8080/home
+    headers:
+      User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
+      body: 'j_username=user&j_password=pass'
+    cookie_file: '/tmp/cookie.txt'
 ```
 
 For all available options please see

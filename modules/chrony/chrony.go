@@ -3,12 +3,9 @@ package chrony
 import (
 	"fmt"
 	"github.com/getsentry/sentry-go"
+	"github.com/netdata/go.d.plugin/agent/module"
 	"net"
 	"time"
-
-	// "github.com/getsentry/raven-go"
-
-	"github.com/netdata/go.d.plugin/agent/module"
 )
 
 type (

@@ -1,11 +1,14 @@
 <!--
 title: "Lighttpd monitoring with Netdata"
 description: "Monitor the health and performance of Lighttpd web servers with zero configuration, per-second metric granularity, and interactive visualizations."
-custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/lighttpd/README.md
+custom_edit_url: "https://github.com/netdata/go.d.plugin/edit/master/modules/lighttpd/README.md"
 sidebar_label: "Lighttpd"
+learn_status: "Published"
+learn_topic_type: "References"
+learn_rel_path: "Integrations/Monitor/Webapps"
 -->
 
-# Lighttpd monitoring with Netdata
+# Lighttpd collector
 
 [`Lighttpd`](https://www.lighttpd.net/) is an open-source web server optimized for speed-critical environments while
 remaining standards-compliant, secure and flexible
@@ -31,7 +34,7 @@ All metrics have "lighttpd." prefix.
 ## Configuration
 
 Edit the `go.d/lighttpd.conf` configuration file using `edit-config` from the
-Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
+Netdata [config directory](https://github.com/netdata/netdata/blob/master/docs/configure/nodes.md), which is typically at `/etc/netdata`.
 
 ```bash
 cd /etc/netdata # Replace this path with your Netdata config directory

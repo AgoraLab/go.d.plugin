@@ -1,11 +1,14 @@
 <!--
 title: "Energi Core Wallet monitoring with Netdata"
 description: "Monitor the health and performance of Energi Core Wallets with zero configuration, per-second metric granularity, and interactive visualizations."
-custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/energid/README.md
+custom_edit_url: "https://github.com/netdata/go.d.plugin/edit/master/modules/energid/README.md"
 sidebar_label: "Energi Core Wallet"
+learn_status: "Published"
+learn_topic_type: "References"
+learn_rel_path: "Integrations/Monitor/Remotes/Devices"
 -->
 
-# Energi Core Wallet monitoring with Netdata
+# Energi Core Wallet collector
 
 This module monitors one or more `Energi Core Wallet` instances, depending on your configuration.
 
@@ -30,7 +33,7 @@ All metrics have "energid." prefix.
 ## Configuration
 
 Edit the `go.d/energid.conf` configuration file using `edit-config` from the
-Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
+Netdata [config directory](https://github.com/netdata/netdata/blob/master/docs/configure/nodes.md), which is typically at `/etc/netdata`.
 
 ```bash
 cd /etc/netdata # Replace this path with your Netdata config directory

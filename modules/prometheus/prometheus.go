@@ -13,73 +13,61 @@ import (
 )
 
 func init() {
-	creator := module.Creator{
+	module.Register("prometheus", module.Creator{
 		Defaults: module.Defaults{
-			UpdateEvery: 5,
+			UpdateEvery: 10,
 		},
 		Create: func() module.Module { return New() },
-	}
-
-	module.Register("prometheus", creator)
+	})
 }
 
 func New() *Prometheus {
-	config := Config{
-		HTTP: web.HTTP{
-			Client: web.Client{
-				Timeout: web.Duration{Duration: time.Second * 5},
-			},
-		},
-		MaxTS:          3000,
-		MaxTSPerMetric: 200,
-	}
 	return &Prometheus{
-		Config:       config,
-		cache:        make(collectCache),
-		skipMetrics:  make(map[string]bool),
-		charts:       statsCharts.Copy(),
-		firstCollect: true,
+		Config: Config{
+			HTTP: web.HTTP{
+				Client: web.Client{
+					Timeout: web.Duration{Duration: time.Second * 10},
+				},
+			},
+			MaxTS:          2000,
+			MaxTSPerMetric: 200,
+		},
+		charts: &module.Charts{},
+		cache:  newCache(),
 	}
 }
 
-type (
-	Config struct {
-		web.HTTP               `yaml:",inline"`
-		Name                   string        `yaml:"name"`
-		Application            string        `yaml:"app"`
-		BearerTokenFile        string        `yaml:"bearer_token_file"` // TODO: part of web.Request?
-		MaxTS                  int           `yaml:"max_time_series"`
-		MaxTSPerMetric         int           `yaml:"max_time_series_per_metric"`
-		Selector               selector.Expr `yaml:"selector"`
-		Grouping               []GroupOption `yaml:"group"`
-		ExpectedPrefix         string        `yaml:"expected_prefix"`
-		ForceAbsoluteAlgorithm []string      `yaml:"force_absolute_algorithm"`
-	}
-	GroupOption struct {
-		Selector string `yaml:"selector"`
-		ByLabel  string `yaml:"by_label"`
-	}
+type Config struct {
+	web.HTTP        `yaml:",inline"`
+	Name            string `yaml:"name"`
+	Application     string `yaml:"app"`
+	BearerTokenFile string `yaml:"bearer_token_file"`
 
-	Prometheus struct {
-		module.Base
-		Config `yaml:",inline"`
+	Selector selector.Expr `yaml:"selector"`
 
-		prom   prometheus.Prometheus
-		charts *module.Charts
+	ExpectedPrefix string `yaml:"expected_prefix"`
+	MaxTS          int    `yaml:"max_time_series"`
+	MaxTSPerMetric int    `yaml:"max_time_series_per_metric"`
+	FallbackType   struct {
+		Counter []string `yaml:"counter"`
+		Gauge   []string `yaml:"gauge"`
+	} `yaml:"fallback_type"`
+}
 
-		firstCollect           bool
-		forceAbsoluteAlgorithm matcher.Matcher
-		optGroupings           []optionalGrouping
-		cache                  collectCache
-		skipMetrics            map[string]bool
+type Prometheus struct {
+	module.Base
+	Config `yaml:",inline"`
+
+	charts *module.Charts
+
+	prom  prometheus.Prometheus
+	cache *cache
+
+	fallbackType struct {
+		counter matcher.Matcher
+		gauge   matcher.Matcher
 	}
-	optionalGrouping struct {
-		sr  selector.Selector
-		grp grouper
-	}
-)
-
-func (Prometheus) Cleanup() {}
+}
 
 func (p *Prometheus) Init() bool {
 	if err := p.validateConfig(); err != nil {
@@ -94,19 +82,19 @@ func (p *Prometheus) Init() bool {
 	}
 	p.prom = prom
 
-	optGrps, err := p.initOptionalGrouping()
+	m, err := p.initFallbackTypeMatcher(p.FallbackType.Counter)
 	if err != nil {
-		p.Errorf("init grouping: %v", err)
+		p.Errorf("init counter fallback type matcher: %v", err)
 		return false
 	}
-	p.optGroupings = optGrps
+	p.fallbackType.counter = m
 
-	mr, err := p.initForceAbsoluteAlgorithm()
+	m, err = p.initFallbackTypeMatcher(p.FallbackType.Gauge)
 	if err != nil {
-		p.Errorf("init force_absolute_algorithm (%v): %v", p.ForceAbsoluteAlgorithm, err)
+		p.Errorf("init counter fallback type matcher: %v", err)
 		return false
 	}
-	p.forceAbsoluteAlgorithm = mr
+	p.fallbackType.gauge = m
 
 	return true
 }
@@ -115,7 +103,7 @@ func (p *Prometheus) Check() bool {
 	return len(p.Collect()) > 0
 }
 
-func (p Prometheus) Charts() *module.Charts {
+func (p *Prometheus) Charts() *module.Charts {
 	return p.charts
 }
 
@@ -130,3 +118,5 @@ func (p *Prometheus) Collect() map[string]int64 {
 	}
 	return mx
 }
+
+func (p *Prometheus) Cleanup() {}

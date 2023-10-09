@@ -64,6 +64,8 @@ func (p *Postgres) doDBQueryStatUserTables(db *sql.DB) error {
 		case "relname":
 			name = value
 			p.getTableMetrics(name, dbname, schema).updated = true
+		case "parent_relname":
+			p.getTableMetrics(name, dbname, schema).parentName = value
 		case "seq_scan":
 			p.getTableMetrics(name, dbname, schema).seqScan = parseInt(value)
 		case "seq_tup_read":
@@ -111,7 +113,7 @@ func (p *Postgres) doDBQueryStatIOUserTables(db *sql.DB) error {
 
 	var dbname, schema, name string
 	return p.doDBQuery(db, q, func(column, value string, rowEnd bool) {
-		if value == "" {
+		if value == "" && column != "parent_relname" {
 			value = "-1"
 		}
 		switch column {
@@ -122,6 +124,8 @@ func (p *Postgres) doDBQueryStatIOUserTables(db *sql.DB) error {
 		case "relname":
 			name = value
 			p.getTableMetrics(name, dbname, schema).updated = true
+		case "parent_relname":
+			p.getTableMetrics(name, dbname, schema).parentName = value
 		case "heap_blks_read_bytes":
 			p.getTableMetrics(name, dbname, schema).heapBlksRead.last = parseInt(value)
 		case "heap_blks_hit_bytes":

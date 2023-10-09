@@ -7,11 +7,9 @@ import (
 	"net/http"
 
 	"github.com/netdata/go.d.plugin/pkg/web"
-
-	"github.com/netdata/go.d.plugin/agent/module"
 )
 
-func (es Elasticsearch) validateConfig() error {
+func (es *Elasticsearch) validateConfig() error {
 	if es.URL == "" {
 		return errors.New("URL not set")
 	}
@@ -24,34 +22,6 @@ func (es Elasticsearch) validateConfig() error {
 	return nil
 }
 
-func (es Elasticsearch) initHTTPClient() (*http.Client, error) {
+func (es *Elasticsearch) initHTTPClient() (*http.Client, error) {
 	return web.NewHTTPClient(es.Client)
-}
-
-func (es Elasticsearch) initCharts() (*Charts, error) {
-	charts := module.Charts{}
-	if es.DoNodeStats {
-		if err := charts.Add(*nodeCharts.Copy()...); err != nil {
-			return nil, err
-		}
-	}
-	if es.DoIndicesStats {
-		if err := charts.Add(*nodeIndicesStatsCharts.Copy()...); err != nil {
-			return nil, err
-		}
-	}
-	if es.DoClusterHealth {
-		if err := charts.Add(*clusterHealthCharts.Copy()...); err != nil {
-			return nil, err
-		}
-	}
-	if es.DoClusterStats {
-		if err := charts.Add(*clusterStatsCharts.Copy()...); err != nil {
-			return nil, err
-		}
-	}
-	if len(charts) == 0 {
-		return nil, errors.New("zero charts")
-	}
-	return &charts, nil
 }
