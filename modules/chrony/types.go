@@ -83,8 +83,7 @@ const (
 )
 
 type IpAddr struct {
-	IPAddrHigh uint64
-	IPAddrLow  uint64
+	IP       [16]uint8
 	Family     uint16
 	Pad        uint16
 }
@@ -104,32 +103,9 @@ func (tracking *TrackingPayload) String() string {
 
 func (ia IpAddr) Ip() net.IP {
 	if ia.Family == IpaddrInet4 {
-		m := uint32(ia.IPAddrHigh >> (32))
-		var ip [4]uint8
-		for i := 0; i < 4; i++ {
-			ip[i] = uint8(m % 0x100)
-			m = m / 0x100
-		}
-		return net.IPv4(ip[3], ip[2], ip[1], ip[0])
+		return net.IP(ia.IP[:4])
 	}
-
-	if ia.Family == IpaddrInet6 {
-		res := make(net.IP, net.IPv6len)
-		h := ia.IPAddrHigh
-		for i := 7; i >= 0; i-- {
-			res[i] = byte(h % 0x100)
-			h = h / 0x100
-		}
-		l := ia.IPAddrLow
-		for i := 7; i >= 0; i-- {
-			res[i+8] = byte(l % 0x100)
-			l = l / 0x100
-		}
-
-		return res
-	}
-
-	return net.IPv4zero
+	return net.IP(ia.IP[:])
 }
 
 func (ia IpAddr) String() string {

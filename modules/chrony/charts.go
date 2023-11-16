@@ -151,4 +151,14 @@ var charts = Charts{
 			{ID: net.IPv4zero.String(), Name: net.IPv4zero.String(), Algo: module.Absolute, Div: 1, Mul: 1},
 		},
 	},
+	{
+		ID:    "residual_frequency",
+		Title: "Residual frequency",
+		Units: "ppm",
+		Fam:   "frequency",
+		Ctx:   "chrony.residual_frequency",
+		Dims: module.Dims{
+			{ID: "residual_frequency", Div: 1},
+		},
+	},
 }
