@@ -48,7 +48,7 @@ func New() *Chrony {
 			Protocol:     chronyDefaultProtocol,
 			Address:      chronyDefaultCmdAddr,
 			SentryConfig: sentry.ClientOptions{},
-			Timeout:      1000,
+			Timeout:      500,
 		},
 		charts:       &charts,
 		latestSource: net.IPv4zero,
@@ -80,7 +80,7 @@ func (c *Chrony) Init() bool {
 	}
 
 	c.conn = conn
-	return true
+	return c.ApplyChronyVersion() == nil
 }
 
 // Check makes check
@@ -105,42 +105,25 @@ func (c *Chrony) Charts() *Charts {
 func (c *Chrony) Collect() map[string]int64 {
 	// collect all we need and sent Exception to sentry
 	res := map[string]int64{"running": 0}
+	var err error
 
-	if !c.Running() {
-		return res
-	}
-	res["running"] = 1
-
-	tra := c.collectTracking()
-	for k, v := range tra {
-		res[k] = v
+	err = c.collectTracking(res)
+	if err != nil {
+		c.Errorf("fetch tracking status failed: %s", err)
 	}
 
-	act := c.collectActivity()
-	for k, v := range act {
-		res[k] = v
+	err = c.collectActivity(res)
+	if err != nil {
+		c.Errorf("fetch activity status failed: %s", err)
 	}
 
 	return res
 }
 
-func (c *Chrony) Running() bool {
-	err := c.SubmitEmptyRequest()
-	if err != nil {
-		c.Errorf("contract chrony failed with err: %s", err)
-		return false
-	}
-	return true
-}
-
-func (c *Chrony) collectTracking() (res map[string]int64) {
-	res = make(map[string]int64)
+func (c *Chrony) collectTracking(res map[string]int64) error {
 	tracking, err := c.FetchTracking()
 	if err != nil {
-		c.Errorf("fetch tracking status failed: %s", err)
 		sentry.CaptureException((FetchingChronyError)(err.Error()))
-		res["running"] = 0
-		return
 	}
 	c.Debugf(tracking.String())
 
@@ -154,8 +137,9 @@ func (c *Chrony) collectTracking() (res map[string]int64) {
 	res["last_offset"] = (int64)(tracking.LastOffset.Int64())
 	res["rms_offset"] = (int64)(tracking.RmsOffset.Int64())
 	res["update_interval"] = (int64)(tracking.LastUpdateInterval.Int64())
-	res["current_correction"] = (int64)(tracking.LastUpdateInterval.Int64())
+	res["current_correction"] = (int64)(tracking.CurrentCorrection.Int64())
 	res["ref_timestamp"] = tracking.RefTime.Time().Unix()
+	res["residual_frequency"] = (int64)(tracking.ResidFreqPpm.Int64())
 
 	sourceIp := tracking.Ip.Ip()
 
@@ -206,18 +190,14 @@ func (c *Chrony) collectTracking() (res map[string]int64) {
 		sentry.CaptureException((OutOfSyncForTooLong)(rt))
 	}
 
-	return
+	return nil
 }
 
-func (c *Chrony) collectActivity() (res map[string]int64) {
-	res = make(map[string]int64)
+func (c *Chrony) collectActivity(res map[string]int64) error {
 	activity, err := c.FetchActivity()
 	if err != nil {
-		c.Errorf("fetch activity status failed: %s", err)
 		sentry.CaptureException((FetchingChronyError)(err.Error()))
-		return
 	}
-	c.Debug(activity.String())
 
 	res["online_sources"] = int64(activity.Online)
 	res["offline_sources"] = int64(activity.Offline)
@@ -229,5 +209,5 @@ func (c *Chrony) collectActivity() (res map[string]int64) {
 		c.Debugf("sending sentry error for NoSourceOnlineError: %g", activity.Online)
 		sentry.CaptureException((NoSourceOnlineError)(activity.Online))
 	}
-	return res
+	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"net/http"
 	"path/filepath"
 	"strings"
 
@@ -18,6 +19,7 @@ import (
 	"golang.org/x/net/http/httpproxy"
 
 	_ "github.com/netdata/go.d.plugin/modules"
+	_ "net/http/pprof"
 )
 
 var (
@@ -28,6 +30,7 @@ var (
 	varLibDir = os.Getenv("NETDATA_LIB_DIR")
 	lockDir   = os.Getenv("NETDATA_LOCK_DIR")
 	watchPath = os.Getenv("NETDATA_PLUGINS_GOD_WATCH_PATH")
+	pprofAddr = os.Getenv("NETDATA_GO_PLUGIN_PPROF_ADDRESSES")
 
 	version = "unknown"
 )
@@ -86,6 +89,11 @@ func init() {
 	if v := os.Getenv("TZ"); strings.HasPrefix(v, ":") {
 		_ = os.Unsetenv("TZ")
 	}
+
+	if pprofAddr == "" {
+		pprofAddr = "localhost:65453"
+	}
+	go http.ListenAndServe(pprofAddr, nil)
 }
 
 func main() {
